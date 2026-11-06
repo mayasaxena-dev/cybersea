@@ -33,7 +33,7 @@ if (!game || !tabName) {
 }
 
 const client = new GameClient(game);
-pageShell(app, client, PAGE);
+pageShell(app, client, PAGE, { roller: () => ({ who: (SHIP && st.info.name) || tabName, tab: tabName }) });
 const store = client.tab(tabName);
 const uiKey = gkey(game, `ui:${tabName.toLowerCase()}`);
 // Only the character's signed-in player (or the GM) edits a sheet; anyone signed in edits the ship.

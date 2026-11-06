@@ -147,6 +147,20 @@ The round button at the bottom right of every page sends feedback about the site
 Only the day and the text are kept, not who sent it. The site never shows that tab; read it in
 Google Sheets.
 
+### Table rolls
+
+Rolls made on a sheet are shared with the whole table. The die button above the feedback button
+opens the latest 50; a roll someone else makes while a page is open pops up beside it for a few
+seconds, and the button counts the rolls not looked at yet. Each player can turn off **Share my
+rolls with the table** in that panel (it's remembered per browser). A roll made by the GM, or by
+someone signed in as another character, is marked with who rolled it.
+
+Rolls land on the **Rolls** tab (When | Who | Roll | Dice | Mod | Total | By), which the script
+makes on the first roll. When is in UTC. The site only adds rows; the script keeps the latest 500
+and clears older ones, and an import leaves the tab alone. Delete rows (or the whole tab) in
+Google Sheets to clear the feed. A game whose script is older than this says so in the panel
+instead of sharing: update the script.
+
 ## Theming the rules (Cybersea over Rapscallion)
 
 The Rules tab keeps the book's rows as they are. Three more columns, after **Vis**, hold the

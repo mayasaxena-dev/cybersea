@@ -142,9 +142,10 @@ function tabKey_(name) {
   return String(name).trim().toLowerCase();
 }
 
-// Tabs of ss an import never touches: the Images tab, once there is one, and _Import.
+// Tabs of ss an import never touches: the Images and Rolls tabs, once there are, and _Import.
 function keptTab_(ss, name) {
-  return tabKey_(name) === tabKey_(BASE_TAB) || (tabKind_(name) === 'images' && !!findSheet_(ss, name));
+  const kind = tabKind_(name);
+  return tabKey_(name) === tabKey_(BASE_TAB) || ((kind === 'images' || kind === 'rolls') && !!findSheet_(ss, name));
 }
 
 // Brings book's tabs into ss: each replaces the tab of the same name, keeping its place, or is

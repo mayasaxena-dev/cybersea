@@ -203,7 +203,7 @@ a.tagchip:hover{border-color:var(--blue)}
 .fb{position:fixed;right:14px;bottom:14px;z-index:19;width:34px;height:34px;border-radius:50%;box-shadow:var(--shadow);opacity:.85}
 .fb:hover{opacity:1}
 .has-usage .fb{bottom:calc(14px + var(--usage-h, 0px))}
-.has-fb{padding-bottom:52px}
+.has-fb{padding-bottom:94px}
 .fbtext{width:100%;min-height:120px;margin:8px 0}
 .card.jot{column-span:all}
 .has-usage main{padding-bottom:var(--usage-h, 0px)}
@@ -478,3 +478,35 @@ details.orig summary{cursor:pointer;font:600 11px/1.4 "Chakra Petch",sans-serif;
 .panel .rimg img{max-height:260px;object-fit:contain}
 .loc.off{opacity:.62}
 .loc.off:hover{opacity:1}
+
+/* shared rolls (rolls.js): the die button above the feedback button, its panel, and a new roll popping up */
+.rl{position:fixed;right:14px;bottom:56px;z-index:19;width:34px;height:34px;border-radius:50%;box-shadow:var(--shadow);opacity:.85}
+.rl:hover,.rl.on{opacity:1}
+.has-usage .rl{bottom:calc(56px + var(--usage-h, 0px))}
+.rcount{position:absolute;top:-5px;right:-5px;min-width:17px;height:17px;padding:0 4px;border-radius:9px;background:var(--pink);color:#fff;
+  font:700 10px/17px "Chakra Petch",sans-serif;text-align:center}
+.rfeed,.rpeekbox{position:fixed;right:14px;bottom:98px;z-index:19;width:min(360px,calc(100% - 28px))}
+.has-usage .rfeed,.has-usage .rpeekbox{bottom:calc(98px + var(--usage-h, 0px))}
+.rfeed{display:flex;flex-direction:column;gap:8px;max-height:min(70vh,560px);padding:10px 12px;background:var(--panel);border:1px solid var(--line);
+  border-left:3px solid var(--cyan);border-radius:4px;box-shadow:var(--shadow)}
+.rfeed[hidden]{display:none}
+.rfeed h2{margin:0;font:700 14px/1 "Chakra Petch",sans-serif;letter-spacing:.1em;text-transform:uppercase}
+.rfeed .status{margin:0}
+.rfeed .status.err{color:var(--red)}
+.rlist{margin:0;padding:0;list-style:none;overflow-y:auto;display:grid;gap:6px}
+.rroll{--c:var(--cyan);padding:6px 8px;border:1px solid var(--line);border-left:3px solid var(--c);border-radius:4px;background:var(--panel2);font-family:"Chakra Petch",sans-serif}
+.rroll.mid{--c:var(--amber)}
+.rroll.lo{--c:var(--red)}
+.rhead,.rline{display:flex;align-items:center;gap:6px;min-width:0}
+.rhead{font-size:12px;color:var(--muted)}
+.rwho{color:var(--text);letter-spacing:.06em;text-transform:uppercase}
+.ras{padding:0 5px;border:1px solid var(--line);border-radius:3px;font-size:10px;letter-spacing:.08em;text-transform:uppercase}
+.rlabel{min-width:0;overflow:hidden;text-overflow:ellipsis;white-space:nowrap;font:700 12px/1.2 "Chakra Petch",sans-serif;letter-spacing:.06em;text-transform:uppercase;color:var(--muted)}
+.rroll .dice{display:flex;gap:4px}
+.rroll .die{width:20px;height:20px;font-size:12px}
+.rroll .tot{font-size:18px}
+.rshare{display:flex;align-items:center;gap:6px;font-size:12px;color:var(--muted);cursor:pointer}
+.rpeekbox{margin:0;padding:0;list-style:none;display:grid;gap:6px;pointer-events:none}
+.rpeek{pointer-events:auto;cursor:pointer;background:var(--panel);box-shadow:var(--shadow);animation:rpeek .2s ease-out}
+@keyframes rpeek{from{opacity:0;transform:translateY(8px)}}
+@media (prefers-reduced-motion: reduce){.rpeek{animation:none}}

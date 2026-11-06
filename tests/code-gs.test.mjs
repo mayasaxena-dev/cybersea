@@ -989,3 +989,55 @@ test('Sheets round trips: a few per tab read, none for an unchanged tab, and a p
   assert.ok(short <= 4, `${short} calls for a patch`);
   assert.equal(long, short, 'no call per row');
 });
+
+test('roll: adds a line to the Rolls tab, made if missing, and sends the tab back as a read would', () => {
+  const { gas, api } = setup();
+  const r = crew(api, { op: 'roll', who: 'Nexa', label: 'POKE · Spitfire', dice: [3, 5], mod: 2, total: 10, as: '' });
+  assert.equal(r.ok, true);
+  const grid = gas.ss.getSheetByName('Rolls').getDataRange().getDisplayValues();
+  assert.deepEqual(grid[0], ['When', 'Who', 'Roll', 'Dice', 'Mod', 'Total', 'By']);
+  assert.deepEqual(grid[1].slice(1), ['Nexa', 'POKE · Spitfire', '3 5', '+2', '10', '']);
+  assert.match(grid[1][0], /^\d{4}-\d\d-\d\dT\d\d:\d\d:\d\dZ$/);
+  assert.deepEqual(r.rows, grid.slice(1));
+  gm(api, { op: 'roll', who: '=Nexa', label: 'Blood', dice: [1, 1], mod: -1, total: 1, as: 'GM' });
+  const read = crew(api, { op: 'read', tabs: ['Rolls'] });
+  assert.deepEqual(read.list.find(t => t.name === 'Rolls'), { name: 'Rolls', kind: 'rolls' });
+  assert.deepEqual(read.tabs.Rolls.rows[1].slice(1), ['=Nexa', 'Blood', '1 1', '-1', '1', 'GM']);
+});
+
+test('roll: turns away dice that don’t add up, and the site can’t patch or make the tab', () => {
+  const { api } = setup();
+  const bad = [
+    { who: 'Nexa', label: 'Blood', dice: [3, 5], mod: 0, total: 9 },
+    { who: 'Nexa', label: 'Blood', dice: [7, 1], mod: 0, total: 8 },
+    { who: 'Nexa', label: 'Blood', dice: [], mod: 0, total: 0 },
+    { who: '', label: 'Blood', dice: [1, 2], mod: 0, total: 3 },
+    { who: 'Nexa', label: ' ', dice: [1, 2], mod: 0, total: 3 },
+  ];
+  for (const b of bad) assert.equal(crew(api, { op: 'roll', ...b }).ok, false, JSON.stringify(b));
+  crew(api, { op: 'roll', who: 'Nexa', label: 'Blood', dice: [1, 2], mod: 0, total: 3 });
+  assert.equal(gm(api, { op: 'patch', tab: 'Rolls', set: [['a', 'b', 'c', 'd']] }).code, 'forbidden');
+  assert.equal(gm(api, { op: 'create', tab: 'rolls', rows: [] }).code, 'name');
+  assert.equal(api.call({ op: 'roll', key: 'nope', who: 'Nexa', label: 'Blood', dice: [1, 2], mod: 0, total: 3 }).code, 'auth');
+});
+
+test('roll: reads send the latest 50, and the tab keeps the latest 500', () => {
+  const { gas, api, tick } = setup();
+  const one = i => crew(api, { op: 'roll', who: 'Nexa', label: 'R' + i, dice: [1], mod: 0, total: 1 });
+  for (let i = 0; i < 549; i++) { tick(1000); if (i % 100 === 0) tick(61_000); assert.equal(one(i).ok, true, 'roll ' + i); }
+  assert.equal(gas.ss.getSheetByName('Rolls').getLastRow(), 550);
+  tick(61_000);
+  const r = one(549);
+  assert.equal(gas.ss.getSheetByName('Rolls').getLastRow(), 501);
+  assert.equal(r.rows.length, 50);
+  assert.deepEqual([r.rows[0][2], r.rows[49][2]], ['R500', 'R549']);
+});
+
+test('roll: a flood is held back for a minute', () => {
+  const { api, tick } = setup();
+  let r;
+  for (let i = 0; i < 121; i++) r = crew(api, { op: 'roll', who: 'Nexa', label: 'x', dice: [1], mod: 0, total: 1 });
+  assert.equal(r.code, 'busy');
+  tick(61_000);
+  assert.equal(crew(api, { op: 'roll', who: 'Nexa', label: 'x', dice: [1], mod: 0, total: 1 }).ok, true);
+});

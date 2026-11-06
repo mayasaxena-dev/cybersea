@@ -13,7 +13,7 @@
  *
  * Tabs: Rules (Kind|Group|Name|Text|Meta|Vis, plus optional Override name|Override text|Override
  * meta columns, found by their headers), System (the game's mechanics), GM, Lore, Ship, Map (the world: see mapRows_),
- * Images (pictures by name: see namedImages_), and one
+ * Images (pictures by name: see namedImages_), Rolls (dice the crew shared: see roll_), and one
  * tab per character (Kind|Name|Value|Notes, plus an optional Image column: see picture_). Tabs starting with "_" and README are ignored. The tabs the site
  * edits also get a hidden Version column (see "row versions" below).
  *
@@ -56,6 +56,14 @@ const UPLOAD_TYPES = ['image/png', 'image/jpeg', 'image/gif', 'image/webp'];
 const FEEDBACK_TAB = 'Feedback';
 const FEEDBACK_HEADER = ['Date', 'Feedback'];
 const FEEDBACK_LIMIT = 30; // per minute, from everyone
+// The Rolls tab: dice rolls shared with the table, oldest first (see roll_).
+const ROLLS_TAB = 'Rolls';
+const ROLLS_HEADER = ['When', 'Who', 'Roll', 'Dice', 'Mod', 'Total', 'By'];
+const ROLLS_SENT = 50;   // the latest rows a read sends
+const ROLLS_KEPT = 500;  // older rows are cleared once the tab passes this by ROLLS_SENT
+const ROLL_LIMIT = 120;  // per minute, from everyone
+const ROLL_MAX_DICE = 12;
+const ROLL_MAX_TEXT = 200;
 
 function doGet(e) {
   const op = e && e.parameter ? e.parameter.op : '';
@@ -107,6 +115,7 @@ function op_(role, req) {
     case 'create': return withLock_(() => create_(role, req));
     case 'image': return image_(role, req);
     case 'feedback': return withLock_(() => feedback_(req));
+    case 'roll': return withLock_(() => roll_(req));
     case 'show': return role === 'gm' ? withLock_(() => show_(req)) : forbidden_();
     case 'place': return role === 'gm' ? withLock_(() => place_(req)) : forbidden_();
     case 'images': return role === 'gm' ? images_() : forbidden_();
@@ -163,9 +172,9 @@ function forbidden_() {
 /* ---------- tabs ---------- */
 
 // Tabs named one of these are that kind; any other tab (but README and _hidden ones) is a character.
-const TAB_KINDS = ['rules', 'system', 'gm', 'lore', 'ship', 'map', 'feedback', 'images'];
-// Kinds edited in Sheets only: the site never writes them (tools/xlsx keeps the same lists).
-const SHEETS_ONLY = ['rules', 'system', 'map', 'feedback', 'images'];
+const TAB_KINDS = ['rules', 'system', 'gm', 'lore', 'ship', 'map', 'feedback', 'images', 'rolls'];
+// Kinds the site never patches (tools/xlsx keeps the same lists). Rolls only grow, through roll_.
+const SHEETS_ONLY = ['rules', 'system', 'map', 'feedback', 'images', 'rolls'];
 const sheetsOnly_ = kind => SHEETS_ONLY.indexOf(kind) >= 0;
 
 function tabKind_(name) {
@@ -197,6 +206,7 @@ function findSheet_(ss, name) {
 // of several tabs looks them up once.
 function table_(sh, kind, role, named) {
   if (kind === 'map') return mapTable_(sh, role, named);
+  if (kind === 'rolls') return rollsTable_(sh);
   const grid = sh.getDataRange().getDisplayValues();
   const fixed = kind === 'rules' || kind === 'system'; // edited only in Sheets: no versions
   const rules = kind === 'rules';
@@ -690,6 +700,58 @@ function feedback_(req) {
   return { ok: true };
 }
 
+/*
+ * roll {who, label, dice: [faces], mod, total, as}: a roll shared with the table, added to the
+ * Rolls tab (made if the game has none yet). who is the sheet rolled on; as is who rolled it
+ * when that's someone else ('GM', another character). The dice come from the page: like the rest
+ * of the site, it's the honor system. Sends back the tab as a read would.
+ */
+function roll_(req) {
+  const text = v => String(v == null ? '' : v).replace(/\s+/g, ' ').trim().slice(0, ROLL_MAX_TEXT);
+  const who = text(req.who);
+  const label = text(req.label);
+  const dice = Array.isArray(req.dice) ? req.dice.map(Number) : [];
+  const mod = Number(req.mod) || 0;
+  const total = Number(req.total);
+  if (!who || !label || !dice.length || dice.length > ROLL_MAX_DICE || dice.some(d => !(d >= 1 && d <= 6 && d % 1 === 0)) ||
+      mod % 1 !== 0 || Math.abs(mod) > 99 || total !== dice.reduce((a, b) => a + b, 0) + mod) {
+    return { ok: false, error: 'That roll doesn’t add up.' };
+  }
+  const cache = CacheService.getScriptCache();
+  const sent = Number(cache.get('rolls') || 0);
+  if (sent >= ROLL_LIMIT) return { ok: false, code: 'busy', error: 'Lots of rolls just now. Try again in a minute.' };
+  cache.put('rolls', String(sent + 1), 60);
+  const ss = SpreadsheetApp.getActiveSpreadsheet();
+  let sh = findSheet_(ss, ROLLS_TAB);
+  if (!sh) {
+    sh = ss.insertSheet(ROLLS_TAB);
+    sh.getRange(1, 1, 1, ROLLS_HEADER.length).setValues([ROLLS_HEADER]);
+    sh.setFrozenRows(1);
+  }
+  const when = new Date().toISOString().replace(/\.\d+Z$/, 'Z');
+  const cells = [when, who, label, dice.join(' '), mod ? (mod > 0 ? '+' : '') + mod : '', String(total), text(req.as)];
+  const range = sh.getRange(sh.getLastRow() + 1, 1, 1, ROLLS_HEADER.length);
+  range.setNumberFormat('@');
+  range.setValues([cells.map(safe_)]);
+  const over = sh.getLastRow() - 1 - ROLLS_KEPT;
+  if (over >= ROLLS_SENT) sh.deleteRows(2, over);
+  touched_(ROLLS_TAB);
+  const at = Date.now();
+  const t = rollsTable_(sh);
+  return { ok: true, tab: sh.getName(), at, d: t.d, rows: t.rows };
+}
+
+// The Rolls tab's latest ROLLS_SENT rows, oldest first.
+function rollsTable_(sh) {
+  const grid = sh.getDataRange().getDisplayValues();
+  const rows = grid.slice(1).map(line => {
+    const r = line.slice(0, ROLLS_HEADER.length);
+    while (r.length < ROLLS_HEADER.length) r.push('');
+    return r;
+  }).filter(r => r.join('').trim() !== '').slice(-ROLLS_SENT);
+  return { d: digest_(rows), rows };
+}
+
 /* create {tab, rows}: a new character tab (or a missing Ship/Lore tab; a GM tab needs the GM key) */
 function create_(role, req) {
   const name = String(req.tab || '').trim();
@@ -1163,7 +1225,7 @@ function guard_(sh) {
   const name = sh.getName().trim().toLowerCase();
   const kind = tabKind_(sh.getName());
   if (name === 'readme') { protectTab_(sh, 'how the sheet works'); return true; }
-  if (!kind || kind === 'feedback' || kind === 'images') return false;
+  if (!kind || kind === 'feedback' || kind === 'images' || kind === 'rolls') return false;
   const rows = Math.max(sh.getMaxRows() - 1, 1);
   const list = (values, strict, help) => SpreadsheetApp.newDataValidation().requireValueInList(values, true)
     .setAllowInvalid(!strict).setHelpText(help).build();

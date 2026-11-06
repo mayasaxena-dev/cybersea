@@ -4,6 +4,7 @@ import { esc, escTxt } from './markup.js';
 import { isSignedIn, isSigninRow } from './codec.js';
 import { UNDO_MS, offerUndo, withdrawUndo } from './hold.js';
 import { ls, gkey, listGames, inviteUrl, href, joinGame, forgetGame, inviteFromText } from './games.js';
+import { sharedRolls } from './rolls.js';
 
 export { esc, escTxt };
 
@@ -67,6 +68,13 @@ function toastEl() {
   return el;
 }
 
+// A 2d6 total's band: [class, label]. Other dice have none.
+export const bandOf = (dice, total) => (dice === 2 ? (total >= 10 ? ['hi', '10+'] : total >= 7 ? ['mid', '7-9'] : ['lo', '6-']) : ['', '']);
+
+// Every settled roll also goes to fn({ label, dice, mod, total }) (the shared rolls: rolls.js).
+let rollWatcher = null;
+export const watchRolls = fn => { rollWatcher = fn; };
+
 // Show what a roll will be (label, dice, modifier) with a Roll button; nothing is rolled until it's pressed.
 // Then the dice tumble briefly, settle, and onRolled gets { dice, total }.
 // ask ("Bonds spent"), per ("-1 per scar") and adj (a free +/-) add counters the player sets before rolling.
@@ -109,7 +117,7 @@ export function doRoll(label, mod = 0, dice = 2, onRolled, { ask, per, adj } = {
     if (pm && !mod) pm.remove(); else if (pm) pm.textContent = fmt(mod);
     const ds = Array.from({ length: dice }, d6);
     const total = ds.reduce((a, b) => a + b, 0) + mod;
-    const band = dice === 2 ? (total >= 10 ? ['hi', '10+'] : total >= 7 ? ['mid', '7-9'] : ['lo', '6-']) : ['', ''];
+    const band = bandOf(dice, total);
     go.remove();
     el.className = 'toast show rolling';
     const box = el.querySelector('.dice');
@@ -121,6 +129,7 @@ export function doRoll(label, mod = 0, dice = 2, onRolled, { ask, per, adj } = {
       el.className = 'toast show ' + band[0];
       toastT = setTimeout(() => el.classList.remove('show'), 12000);
       onRolled?.({ dice: ds, total });
+      rollWatcher?.({ label, dice: ds, mod, total });
     };
     if (matchMedia('(prefers-reduced-motion: reduce)').matches) return settle();
     const start = performance.now();
@@ -539,12 +548,14 @@ export function noGame(root, page, { msg = 'Open this page from an invite link f
   throw new Error('no game');
 }
 
-export function pageShell(root, client, page) {
+// roller (pages with dice): () => ({ who, tab }), whose sheet a roll is on (see rolls.js).
+export function pageShell(root, client, page, { roller } = {}) {
   applyTheme();
   navNow = navHTML(client, page);
   root.insertAdjacentHTML('afterbegin', navNow);
   if (client && !document.querySelector('.fb')) { document.body.insertAdjacentHTML('beforeend', feedbackButton()); document.body.classList.add('has-fb'); }
   wireNav(document.body, client);
+  if (client) sharedRolls(client, roller);
 }
 
 // Replaced only when it would change, so focus and hover on it survive.

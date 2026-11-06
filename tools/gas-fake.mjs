@@ -196,6 +196,7 @@ class Sheet {
   insertRowAfter(r) { this.cell(r, 1); this.grid.splice(r, 0, []); this.ss.edits++; return this; }
   clearContents() { this.grid.forEach(line => line.forEach(c => { c.v = ''; c.formula = null; c.image = null; })); this.ss.edits++; return this; }
   deleteRow(r) { if (r <= this.grid.length) this.grid.splice(r - 1, 1); this.ss.edits++; return this; }
+  deleteRows(r, n) { this.grid.splice(r - 1, n); this.ss.edits++; return this; }
   setFrozenRows(n) { this.frozen = n; return this; }
   getFrozenRows() { return this.frozen; }
   setFrozenColumns(n) { this.frozenCols = n; return this; }
