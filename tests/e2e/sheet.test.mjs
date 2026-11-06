@@ -126,7 +126,9 @@ test('checklists on playbook moves save per character', async () => {
   await p.click('details[data-id="playbook:SUMMON"] li[data-ck="1"]');
   const r = await until(async () => { const x = row(await h.tab(api, 'Testa'), 'move', 'SUMMON'); return x && x[3].includes('[x] Fire burst.') && x; });
   assert.match(r[3], /\[x\] Shadow cloak\.\n\[x\] Fire burst\.\n\[x\] Shape change\./);
-  // unmarked advance moves show greyed out
+  // unmarked advance moves are off the list until asked for, then show greyed out
+  assert.equal(await p.$('details[data-id="playbook:HEX"]'), null);
+  await p.click('[data-act="more"]');
   assert.ok(await p.$('details.move.off[data-id="playbook:HEX"]'));
   // a roll chip shows the stat and modifier
   assert.match(await p.textContent('details[data-id="playbook:SUMMON"] .chip'), /Spitfire \+2/);
@@ -264,6 +266,9 @@ test('actions: session, chapter’s end, downtime with a rolled move, level up',
   // Begin and Leave Downtime run from their moves on the Moves tab too
   await p.click('[data-act="tab"][data-tab="moves"]');
   await p.click('[data-act="cat"][data-cat="downtime"]');
+  assert.deepEqual(await p.$$eval('details.move', ds => ds.map(d => d.dataset.id)), ['downtime:BEGIN DOWNTIME'], 'only what can be made now');
+  assert.match(await p.textContent('[data-act="more"]'), /Show 3 moves not available now/);
+  await p.click('[data-act="more"]');
   assert.ok(await p.isDisabled('details[data-id="downtime:LEAVE DOWNTIME"] .chip'), 'not in downtime yet');
   assert.ok(await p.isDisabled('details[data-id="downtime:DICE GAME"] .chip'), 'downtime moves wait for downtime');
   await p.click('details[data-id="downtime:BEGIN DOWNTIME"] .chip');
@@ -336,6 +341,7 @@ test('every move can be made by someone; moves not taken are off', async () => {
   await h.setTab(api, 'Testa', [HEADER, ...sampleCharacter, ['move', 'HEX', '●', '']]);
   const p = await openSheet();
   await p.click('[data-act="tab"][data-tab="moves"]');
+  await p.click('[data-act="more"]');
   assert.ok(await p.isDisabled('details[data-id="playbook:OMEN"] [data-act="roll-move"]'), 'an unmarked move can’t be rolled');
   assert.ok(await p.isDisabled('details[data-id="playbook:BAD PENNY"] [data-act="use-move"]'));
   // a move with nothing to roll or spend is used, and the use goes in the log

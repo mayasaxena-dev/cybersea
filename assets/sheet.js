@@ -363,6 +363,13 @@ function moveHTML(m, i, forceOpen) {
     `<div class="mbody"${m.own ? ` data-move="${esc(m.name)}"` : ''}>${md(m.text)}</div></details>`;
 }
 
+// Moves that can't be made now (not taken, or out of their time) stay off the list unless asked for.
+const offNow = m => {
+  if (m.cat === 'playbook' && !m.marked) return true;
+  const a = actions.forMove(m);
+  return a ? !a.ok : !!actions.why(m);
+};
+
 let lastMoves = [];
 function moveListHTML() {
   const q = query.trim().toLowerCase();
@@ -371,12 +378,15 @@ function moveListHTML() {
   const rolls = rollStats();
   all.forEach(m => { m.stats = rolls(m); });
   const cats = ui.cat === 'all' ? CATS() : [ui.cat];
+  const filter = !editing && !q;
   let out = '';
+  let off = 0;
   for (const c of cats) {
     const items = [];
     all.forEach((m, i) => {
       if (m.cat !== c) return;
       if (q && !`${m.name} ${m.text}`.toLowerCase().includes(q)) return;
+      if (filter && offNow(m)) { off++; if (!ui.more) return; }
       items.push(moveHTML(m, i, !!q));
     });
     if (!items.length && !(editing && c === 'playbook' && !q)) continue;
@@ -384,7 +394,8 @@ function moveListHTML() {
       (editing && c === 'playbook' ? '<button class="add sm" data-act="add-move">+</button>' : '') + '</div>';
   }
   if (R.empty && !out) return '<div class="empty">The Rules tab hasn’t loaded yet.</div>';
-  return out || '<div class="empty">No moves match.</div>';
+  const more = off ? `<div class="cats mmore"><button data-act="more" aria-pressed="${!!ui.more}" class="${ui.more ? 'on' : ''}">${ui.more ? 'Hide moves not available now' : `Show ${off} move${off === 1 ? '' : 's'} not available now`}</button></div>` : '';
+  return (out || (off ? '' : '<div class="empty">No moves match.</div>')) + more;
 }
 
 function movesHTML() {
@@ -852,6 +863,7 @@ app.addEventListener('click', e => {
     case 'edit': editing = !editing && canEdit(); render(); if (!editing) later.run(); break;
     case 'tab': ui.tab = b.dataset.tab; saveUi(); render(); break;
     case 'cat': ui.cat = b.dataset.cat; saveUi(); render(); break;
+    case 'more': ui.more = !ui.more; saveUi(); render(); break;
     case 'sheet-menu': sheetMenu(); break;
     case 'pic-add': if (editing && !uploading) pickPicture(rowOfAttr(b.dataset.row)); break;
     case 'pic-rm': if (editing && !uploading && armed(b)) takePictureOff(rowOfAttr(b.dataset.row)); break;
