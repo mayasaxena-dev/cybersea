@@ -155,8 +155,12 @@ seconds, and the button counts the rolls not looked at yet. Each player can turn
 rolls with the table** in that panel (it's remembered per browser). A roll made by the GM, or by
 someone signed in as another character, is marked with who rolled it.
 
+On a sheet, the panel also takes a roll made with real dice: pick the stat, type each die, and
+**Share**. It's shared whatever the switch says, and shows as "Vinegar · real dice". A player can
+delete the rolls they made (click × twice); the GM can delete any.
+
 Rolls land on the **Rolls** tab (When | Who | Roll | Dice | Mod | Total | By), which the script
-makes on the first roll. When is in UTC. The site only adds rows; the script keeps the latest 500
+makes on the first roll. When is in UTC. The site adds rows and deletes them one at a time; the script keeps the latest 500
 and clears older ones, and an import leaves the tab alone. Delete rows (or the whole tab) in
 Google Sheets to clear the feed. A game whose script is older than this says so in the panel
 instead of sharing: update the script.

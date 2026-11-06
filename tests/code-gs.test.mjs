@@ -1041,3 +1041,17 @@ test('roll: a flood is held back for a minute', () => {
   tick(61_000);
   assert.equal(crew(api, { op: 'roll', who: 'Nexa', label: 'x', dice: [1], mod: 0, total: 1 }).ok, true);
 });
+
+test('unroll: clears the latest row that matches, and a roll already gone is no error', () => {
+  const { gas, api, tick } = setup();
+  const a = crew(api, { op: 'roll', who: 'Nexa', label: 'Blood', dice: [1, 2], mod: 0, total: 3 }).rows[0];
+  tick(1000);
+  crew(api, { op: 'roll', who: 'Nexa', label: 'Polish', dice: [6, 6], mod: 0, total: 12 });
+  const r = crew(api, { op: 'unroll', row: a });
+  assert.equal(r.ok, true);
+  assert.deepEqual(r.rows.map(x => x[2]), ['Polish']);
+  assert.equal(gas.ss.getSheetByName('Rolls').getLastRow(), 2);
+  assert.equal(crew(api, { op: 'unroll', row: a }).ok, true);
+  assert.equal(gas.ss.getSheetByName('Rolls').getLastRow(), 2);
+  assert.equal(crew(api, { op: 'unroll', row: ['x'] }).ok, false);
+});
