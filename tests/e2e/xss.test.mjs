@@ -30,9 +30,9 @@ test('rules page: a playbook meta value stays text', async () => {
   await p.goto(`${h.srv.site}/rules.html#join=${invite(api.url)}`);
   await p.waitForSelector('#ref .mgroup');
   await p.click('.cats button:has-text("Playbooks")');
-  await p.waitForSelector('#ref .move.pb .mn:has-text("Evil")');
+  await p.waitForSelector('#ref .move.pbook .mn:has-text("Evil")');
   assert.equal(await injected(p), 0);
-  assert.match(await p.textContent('#ref .move.pb:has-text("Evil") .cnt'), /class=pwn/);
+  assert.match(await p.textContent('#ref .move.pbook:has-text("Evil") .cnt'), /class=pwn/);
 });
 
 test('character sheet: a move group, a track name and the downtime count stay text', async () => {

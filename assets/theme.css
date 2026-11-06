@@ -147,7 +147,7 @@ h2{font:700 13px/1.2 "Chakra Petch",sans-serif;letter-spacing:.14em;text-transfo
 /* kit */
 .wrow{display:flex;align-items:center;gap:10px;margin-top:8px}
 .wrow .lbl{width:64px}
-.items{list-style:none;padding:0;margin:10px 0 0;display:grid;gap:8px}
+.items{list-style:none;padding:0;margin:10px 0 0;display:grid;grid-template-columns:minmax(0,1fr);gap:8px}
 .item{display:flex;align-items:center;gap:8px}
 .item .iname,.item .in{flex:1;min-width:0;overflow-wrap:anywhere}
 .additem{display:flex;gap:6px;margin-top:10px}
@@ -424,7 +424,7 @@ span.pip.skull.on::before{inset:-3.33px}
 /* rules reference */
 .refline{padding:6px 10px;border-bottom:1px solid var(--line)}
 .move summary .cnt{margin-left:auto;text-transform:none;letter-spacing:.02em}
-.move.pb .mbody>p:first-child{margin-top:4px}
+.move.pbook .mbody>p:first-child{margin-top:4px}
 .pbpart h4{margin:12px 0 4px;font:700 11px/1 "Chakra Petch",sans-serif;letter-spacing:.14em;text-transform:uppercase;color:var(--cyan)}
 .pbpart p{margin:6px 0 2px}
 .mtools .ic{flex:none}
