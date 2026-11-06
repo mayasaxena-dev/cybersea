@@ -59,9 +59,14 @@ function patternOf(name) {
   }
   return tagRe.get(name);
 }
+// group: a tag group, a list of them, or none for every tag.
+export function tagRows(R, group) {
+  const groups = [group].flat().filter(Boolean);
+  return groups.length ? groups.flatMap(g => R.by('tag', g)) : R.by('tag');
+}
 export function tagDef(R, tag, group) {
   const t = low(tag);
-  const rows = R.by('tag', group || undefined);
+  const rows = tagRows(R, group);
   return rows.find(r => low(r.name) === t) || rows.find(r => patternOf(r.name).test(t)) || null;
 }
 // "2-harm, aids science (and fixing), wild": commas inside brackets don't split.

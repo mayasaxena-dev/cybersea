@@ -20,7 +20,9 @@
 // {sum} in it is worked out, e.g. "({Fortune+5} space)". The crew section's type (a playbook type,
 // e.g. npc) gives crew members their tracks and tags (tag rows of that group), table names the Rules
 // table group whose rows are the kinds of crew member (each with tags= and its track sizes, e.g.
-// harm=2), and serves is what to call whose they are, e.g. serves="Hand of".
+// harm=2), and serves is what to call whose they are, e.g. serves="Hand of". The kit's and cargo's
+// tags= (e.g. tags=item,weapon) are the Rules tab's tag groups their items' tags come from (every
+// group if it's left out).
 //
 // Rows with actions, rolls and costs say so in their meta:
 //   action=session-begin|session-end|chapter-end|begin-downtime|leave-downtime|level-up, label="…"
@@ -75,6 +77,7 @@ function systemFor(R, t) {
   const sections = R.by('section', t).map(r => ({
     title: r.name, role: low(r.meta.role), tab: low(r.meta.tab) || 'sheet', fill: low(r.meta.fill), size: r.meta.size, full: r.meta.full, note: r.text,
     table: r.meta.table || '', type: low(r.meta.type), serves: r.meta.serves || '',
+    tags: typeof r.meta.tags === 'string' ? r.meta.tags.split(/[,|]/).map(low).filter(Boolean) : [],
   }));
   const track = role => tracks.find(x => x.role === role) || null;
   const section = role => sections.find(x => x.role === role) || null;

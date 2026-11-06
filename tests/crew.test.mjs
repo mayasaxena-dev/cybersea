@@ -68,6 +68,10 @@ test('tags: comma lists keep brackets whole; a tag row explains its kind of tag'
   assert.equal(tagDef(R, '1-harm', 'npc'), null);
   assert.equal(tagDef(R, 'loud', 'npc'), null, 'only the crew type’s tags');
   assert.equal(tagDef(R, 'loud').name, 'loud', 'or any, without a group');
+  assert.equal(tagDef(R, 'loud', ['item', 'weapon']).name, 'loud', 'or any of several groups');
+  assert.equal(tagDef(R, 'jumpy', ['item', 'weapon']), null);
+  assert.deepEqual(systemOf(R, 'ship').section('kit').tags, ['item', 'weapon'], 'the kit section’s tags= names them');
+  assert.deepEqual(systemOf(R, 'ship').section('cargo').tags, []);
   const stub = names => ({ by: () => names.map(name => ({ name })) });
   assert.equal(tagDef(stub(['x-harm']), '2-harm').name, 'x-harm');
   assert.equal(tagDef(stub(['harm-x [something]']), 'harm-2 cutlasses and hooks').name, 'harm-x [something]');

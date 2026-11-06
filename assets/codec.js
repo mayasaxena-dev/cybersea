@@ -51,23 +51,31 @@ export const logId = (at = Date.now()) => `${new Date(at).toISOString()}~${Math.
 // Notes starts with "Type: …", "Serves: …" (whose they are: a character's tab name) and "Tags: …"
 // lines, each left out when blank; anything after them is notes.
 const CREW_FIELDS = [['type', 'Type'], ['serves', 'Serves'], ['tags', 'Tags']];
-export function parseCrew(name, value, notes) {
-  const c = { name, pips: parseTrack(value), type: '', serves: '', tags: '', note: '' };
+function parseFields(fields, notes, into) {
   const lines = String(notes ?? '').split('\n');
   let i = 0;
   for (; i < lines.length; i++) {
     const m = lines[i].match(/^\s*(\w+)\s*:\s*(.*)$/);
-    const f = m && CREW_FIELDS.find(([k]) => k === m[1].toLowerCase());
+    const f = m && fields.find(([k]) => k === m[1].toLowerCase());
     if (!f) break;
-    c[f[0]] = m[2].trim();
+    into[f[0]] = m[2].trim();
   }
-  c.note = lines.slice(i).join('\n').trim();
-  return c;
+  into.note = lines.slice(i).join('\n').trim();
+  return into;
 }
-export function formatCrew(c) {
-  const head = CREW_FIELDS.filter(([k]) => String(c[k] || '').trim()).map(([k, label]) => `${label}: ${String(c[k]).trim()}`);
+function formatFields(fields, c) {
+  const head = fields.filter(([k]) => String(c[k] || '').trim()).map(([k, label]) => `${label}: ${String(c[k]).trim()}`);
   return [head.join('\n'), c.note || ''].filter(Boolean).join('\n\n');
 }
+export const parseCrew = (name, value, notes) => parseFields(CREW_FIELDS, notes, { name, pips: parseTrack(value), type: '', serves: '', tags: '', note: '' });
+export const formatCrew = c => formatFields(CREW_FIELDS, c);
+
+/* ---------- items and cargo ---------- */
+// item | Name | how many | Notes, where Notes may start with a "Tags: …" line (comma-separated), then a
+// blank line and the notes.
+const ITEM_FIELDS = [['tags', 'Tags']];
+export const parseItem = (name, value, notes) => parseFields(ITEM_FIELDS, notes, { name, count: parseCount(value), tags: '', note: '' });
+export const formatItem = it => formatFields(ITEM_FIELDS, it);
 
 /* ---------- signing in as a character ---------- */
 // One row on a character's tab says someone is playing them: signin | Signed in | yes.
@@ -95,8 +103,8 @@ export function parseSheet(rows) {
       case 'sheet': case 'notes': case 'kit': st.sections.push({ tab: k, title: n, text: value, note: notes }); break;
       case 'move': st.moves.push({ name: n, marked: parseTrack(value)[0] === 1, text: notes }); break;
       case 'special': st.specials.push({ name: n, marked: parseTrack(value)[0] === 1, text: notes }); break;
-      case 'item': st.items.push({ name: n, count: parseCount(value), note: notes }); break;
-      case 'cargo': st.cargo.push({ name: n, count: parseCount(value), note: notes }); break; // like items, in their own list
+      case 'item': st.items.push(parseItem(n, value, notes)); break;
+      case 'cargo': st.cargo.push(parseItem(n, value, notes)); break; // like items, in their own list
       case 'crew': st.crew.push(parseCrew(n, value, notes)); break;
       case 'jot': st.jot = value; break; // the scratchpad: jot | Notes | whatever was jotted down
       case 'advance': st.advances[n] = parseInt(value, 10) || 0; break;
@@ -126,8 +134,8 @@ export function serializeSheet(st) {
   for (const b of st.bonds) rows.push(['bond', b.name, formatBond(b.pips), b.to || '']);
   for (const s of st.sections) rows.push([SECTION_KINDS.includes(s.tab) ? s.tab : 'sheet', s.title, s.text || '', s.note || '']);
   if (st.jot) rows.push(['jot', 'Notes', st.jot, '']);
-  for (const it of st.items || []) rows.push(['item', it.name, it.count == null ? '' : String(it.count), it.note || '']);
-  for (const it of st.cargo || []) rows.push(['cargo', it.name, it.count == null ? '' : String(it.count), it.note || '']);
+  for (const it of st.items || []) rows.push(['item', it.name, it.count == null ? '' : String(it.count), formatItem(it)]);
+  for (const it of st.cargo || []) rows.push(['cargo', it.name, it.count == null ? '' : String(it.count), formatItem(it)]);
   for (const c of st.crew || []) rows.push(['crew', c.name, formatTrack(c.pips), formatCrew(c)]);
   for (const m of st.moves) rows.push(['move', m.name, m.marked ? '●' : '○', m.text || '']);
   for (const m of st.specials) rows.push(['special', m.name, m.marked ? '●' : '○', m.text || '']);

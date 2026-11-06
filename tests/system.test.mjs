@@ -44,7 +44,7 @@ test('the fixture game: stats, tracks and cards a new character starts with', ()
   assert.deepEqual(of('stat'), [['Blood', '-2'], ['Vinegar', '+1'], ['Polish', '+1'], ['Spitfire', '+1']]);
   assert.deepEqual(of('track'), [['Harm', '○○○○○○'], ['Luck', '●○○○○○○○'], ['Vice', '○'], ['Experience', '○○○○○○'], ['Treasure', '●○○○○'], ['Hoard', '●○○○○']]);
   assert.deepEqual(rows.filter(r => ['sheet', 'notes', 'kit'].includes(r[0])).map(r => `${r[0]}:${r[1]}`),
-    ['sheet:Vice', 'sheet:Oddity', 'sheet:Bonds', 'sheet:Troubles', 'sheet:Experience', 'notes:Questions', 'notes:Last Words', 'kit:Treasure']);
+    ['sheet:Vice', 'sheet:Oddity', 'sheet:Bonds', 'sheet:Troubles', 'sheet:Experience', 'kit:Items', 'notes:Questions', 'notes:Last Words', 'kit:Treasure']);
   assert.deepEqual(of('move').map(m => m[0]), ['SUMMON', 'HAGGLE']);
   assert.deepEqual(characterTypes(R0), ['pirate']);
   assert.equal(typeOf(R0, 'Trickster'), 'pirate');

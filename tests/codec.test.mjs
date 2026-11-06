@@ -69,8 +69,19 @@ test('pending changes apply on top of server rows in order', () => {
 
 test('items keep a count (blank when not counted) and notes', () => {
   const st = parseSheet([['item', 'Medkit', '3', 'From the clinic.'], ['item', 'Rope', '', ''], ['item', 'Flare', 'lots', '']]);
-  assert.deepEqual(st.items, [{ name: 'Medkit', count: 3, note: 'From the clinic.' }, { name: 'Rope', count: null, note: '' }, { name: 'Flare', count: null, note: '' }]);
+  assert.deepEqual(st.items, [{ name: 'Medkit', count: 3, tags: '', note: 'From the clinic.' }, { name: 'Rope', count: null, tags: '', note: '' }, { name: 'Flare', count: null, tags: '', note: '' }]);
   assert.deepEqual(serializeSheet(st).filter(r => r[0] === 'item'), [['item', 'Medkit', '3', 'From the clinic.'], ['item', 'Rope', '', ''], ['item', 'Flare', '', '']]);
+});
+
+test('an item’s tags are a Tags: line at the top of its notes', () => {
+  const rows = [['item', 'Cutlass', '', 'Tags: 2-harm, loud\n\nFrom the clinic.'], ['cargo', 'Disc', '1', 'Tags: shiny'], ['item', 'Rope', '', 'Tagged: no']];
+  const st = parseSheet(rows);
+  assert.deepEqual(st.items[0], { name: 'Cutlass', count: null, tags: '2-harm, loud', note: 'From the clinic.' });
+  assert.deepEqual(st.cargo[0], { name: 'Disc', count: 1, tags: 'shiny', note: '' });
+  assert.deepEqual([st.items[1].tags, st.items[1].note], ['', 'Tagged: no']);
+  assert.deepEqual(serializeSheet(st).filter(r => r[0] === 'item' || r[0] === 'cargo'), [rows[0], rows[2], rows[1]]);
+  st.items[1].tags = 'heavy';
+  assert.deepEqual(diffRows(serializeSheet(parseSheet(rows)), serializeSheet(st)).set, [['item', 'Rope', '', 'Tags: heavy\n\nTagged: no']]);
 });
 
 test('the scratchpad is one jot row, there only while it has something in it', () => {
