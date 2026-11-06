@@ -174,7 +174,7 @@ function headerHTML() {
   const trackHTML = (label, t, kind, skulls) => `<div class="track ${kind}"><span class="lbl">${escTxt(label)}</span><span class="pips">${pips(`t:${t.name}`, t.pips, label, false, skulls)}</span>${E ? pm(`t:${t.name}`) : ''}</div>`;
   const stats = st.stats.map((s, i) => E
     ? `<div class="stat"><input class="in sk" data-bind="stat:${i}:k" value="${esc(s.k)}" aria-label="Stat"><input class="in sv" type="number" step="1" data-bind="stat:${i}:v" value="${s.v}" aria-label="${esc(s.k)}"></div>`
-    : `<button class="stat" data-act="roll-stat" data-i="${i}" title="Roll"><span class="sk">${escTxt(s.k)}</span>${ICON.die}<span class="sv">${fmt(s.v)}</span></button>`).join('');
+    : `<button class="stat" data-act="roll-stat" data-i="${i}" title="${esc(sys().statText(s.k) || 'Roll')}"><span class="sk">${escTxt(s.k)}</span>${ICON.die}<span class="sv">${fmt(s.v)}</span></button>`).join('');
   return `<header class="top">
     <div class="idrow">
       ${portraitHTML()}

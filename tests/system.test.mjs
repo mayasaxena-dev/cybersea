@@ -84,3 +84,10 @@ test('another game: its own stats, tracks and sizes, nothing from Rapscallion', 
   assert.equal(rows.find(r => r[1] === 'Background')[2].split('\n')[0], '**Steady hands** (+1,+2)');
   assert.equal(rollOf(R.playbook('Pilot').moves[0].meta, [{ k: 'Nerve', v: 2 }]).mod, 2);
 });
+
+test('a stat row’s Text is what the stat is for', () => {
+  const pirate = systemOf(R0, 'pirate');
+  assert.equal(pirate.statText('BLOOD'), 'grit/nerve');
+  assert.equal(pirate.statText('Vinegar'), '');
+  assert.equal(pirate.statText('Steadfast'), '', 'another type’s stat');
+});

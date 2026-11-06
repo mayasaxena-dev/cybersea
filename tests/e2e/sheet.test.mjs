@@ -687,3 +687,10 @@ test('a button pressed by keyboard keeps focus through the redraw, so it can be 
   assert.equal(await p.$$eval('[data-pip="t:Experience"]', ps => ps.length), before + 1);
   await p.click('[data-act="edit"]');
 });
+
+test('a stat’s hover text is its System row’s Text', async () => {
+  const p = await openSheet(undefined, { as: null });
+  const titles = await p.$$eval('button.stat', bs => bs.map(b => [b.querySelector('.sk').textContent, b.title]));
+  assert.deepEqual(titles.slice(0, 2), [['Blood', 'grit/nerve'], ['Vinegar', 'Roll']]);
+  await p.close();
+});

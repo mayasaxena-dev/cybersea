@@ -81,6 +81,7 @@ function systemFor(R, t) {
   return {
     type: t,
     stats: R.by('stat', t).map(r => r.name),
+    statText: name => R.by('stat', t).find(r => low(r.name) === low(name))?.text || '',
     tracks,
     sections,
     track,

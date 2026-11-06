@@ -38,7 +38,8 @@ export const HEADER = ['Kind', 'Name', 'Value', 'Notes'];
 const S = (kind, group, name, text, meta = '') => [kind, group, name, text, meta];
 export const SYSTEM_HEADER = ['Kind', 'Group', 'Name', 'Text', 'Meta'];
 export const system = [
-  ...['Blood', 'Vinegar', 'Polish', 'Spitfire'].map(n => S('stat', 'pirate', n, '')),
+  S('stat', 'pirate', 'Blood', 'grit/nerve'),
+  ...['Vinegar', 'Polish', 'Spitfire'].map(n => S('stat', 'pirate', n, '')),
   ...['Steadfast', 'Speed', 'Fortune'].map(n => S('stat', 'ship', n, '')),
   S('track', 'pirate', 'Harm', '', 'role=harm size=6 skulls=3'),
   S('track', 'pirate', 'Luck', '', 'role=luck size=5 start=Spitfire refill=Spitfire'),
