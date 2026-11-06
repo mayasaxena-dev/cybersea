@@ -354,6 +354,17 @@ test('every move can be made by someone; moves not taken are off', async () => {
   assert.match(await p.textContent('details[data-id="ship:CHART A COURSE"] [data-act="roll-move"]'), /Spitfire \+2/i);
 });
 
+test('signed out, a sheet’s move buttons show but say to sign in', async () => {
+  const p = await openSheet({}, { as: null });
+  await p.click('[data-act="tab"][data-tab="moves"]');
+  const begin = 'details[data-id="downtime:BEGIN DOWNTIME"] [data-act="run"]';
+  await p.waitForSelector(begin);
+  assert.ok(await p.isDisabled(begin));
+  assert.equal(await p.getAttribute(begin, 'title'), 'Sign in as Testa to use this');
+  assert.ok(await p.isDisabled('details[data-id="basic:FLIP A COIN"] [data-act="spend"]'));
+  assert.ok(!(await p.isDisabled('details[data-id="basic:POKE AROUND"] [data-act="roll-move"]')), 'anyone can roll');
+});
+
 test('session ends: the vice and marked moves that end-of-session touches', async () => {
   const { sampleCharacter, HEADER } = await import('../fixtures/game.mjs');
   await h.setTab(api, 'Testa', [HEADER, ...sampleCharacter, ['move', 'LUCKY BREAK', '●', '']]);

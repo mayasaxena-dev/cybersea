@@ -350,12 +350,14 @@ function moveHTML(m, i, forceOpen) {
   const roll = typeof m.meta.roll === 'string' && m.meta.roll.trim();
   const chip = r ? `<button class="chip" data-act="roll-move" data-i="${i}"${tip('Roll')}>${ICON.die}<span>${escTxt(r.label)}${r.stat ? ' ' + fmt(r.mod) : ''}</span></button>`
     : roll ? `<button class="chip"${tip('', no || (SHIP && !client.me ? 'Sign in as a character to roll this' : `No ${roll} to roll`))}>${ICON.die}<span>${escTxt(roll)}</span></button>` : '';
-  const a = canEdit() && actions.forMove(m);
-  const act = a ? `<button class="chip" data-act="run" data-kind="${a.kind}"${a.ok ? ` title="${esc(a.label)}"` : ` title="${esc(a.why)}" disabled`}>${escTxt(a.label)}</button>` : '';
-  const lc = canEdit() && !SHIP && actions.cost(m);
-  const luck = lc ? `<button class="chip" data-act="spend" data-i="${i}"${tip(`Spend ${lc.word}`, no || (lc.ok ? '' : `Not enough ${lc.word}`))}>${escTxt(lc.n ? `${lc.n} ${lc.word}` : cap(lc.word))}</button>` : '';
+  // What changes the sheet shows to everyone, but works only for whoever can edit it.
+  const lock = canEdit() ? '' : SHIP ? 'Sign in to use this' : `Sign in as ${st.info.name || tabName} to use this`;
+  const a = actions.forMove(m);
+  const act = a ? `<button class="chip" data-act="run" data-kind="${a.kind}"${tip(a.label, lock || (a.ok ? '' : a.why))}>${escTxt(a.label)}</button>` : '';
+  const lc = !SHIP && actions.cost(m);
+  const luck = lc ? `<button class="chip" data-act="spend" data-i="${i}"${tip(`Spend ${lc.word}`, lock || no || (lc.ok ? '' : `Not enough ${lc.word}`))}>${escTxt(lc.n ? `${lc.n} ${lc.word}` : cap(lc.word))}</button>` : '';
   // A move with nothing to roll, spend or run is still made: Use offers it for the log.
-  const use = !chip && !act && !luck && canEdit() && !editing ? `<button class="chip" data-act="use-move" data-i="${i}"${tip('Log that this move was made')}>Use</button>` : '';
+  const use = !chip && !act && !luck && !editing ? `<button class="chip" data-act="use-move" data-i="${i}"${tip('Log that this move was made', lock || no)}>Use</button>` : '';
   const open = forceOpen || openSet.has(id);
   return `<details class="move${m.cat === 'playbook' && !m.marked ? ' off' : ''}" data-id="${esc(id)}"${open ? ' open' : ''}><summary>${mk}<span class="mn">${escTxt(m.name)}</span>${chip}${luck}${act}${use}</summary>` +
     `<div class="mbody"${m.own ? ` data-move="${esc(m.name)}"` : ''}>${md(m.text)}</div></details>`;
