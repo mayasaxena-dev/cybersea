@@ -443,7 +443,8 @@ span.pip.skull.on::before{inset:-3.33px}
 /* GM page */
 .gmview{padding-top:12px}
 .tags{display:flex;flex-wrap:wrap;gap:4px;margin-top:6px}
-.tagchip{padding:3px 8px;border:1px solid var(--line);border-radius:999px;font:600 11px/1 "Chakra Petch",sans-serif;letter-spacing:.06em;text-transform:uppercase;color:var(--blue);cursor:help}
+.tagchip{padding:3px 8px;border:1px solid var(--line);border-radius:999px;font:600 11px/1 "Chakra Petch",sans-serif;letter-spacing:.06em;text-transform:uppercase;color:var(--blue)}
+.tagchip[title]{cursor:help}
 .npcadd{margin-top:8px}
 .pill.vice{border-color:var(--pink);color:var(--pink)}
 

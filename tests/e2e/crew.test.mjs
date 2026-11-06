@@ -46,6 +46,7 @@ test('a crew member’s sheet: kind, whose they are, harm, tags explained, and t
   assert.deepEqual(await p.$$eval('.crewsheet .tagchip', es => es.map(e => [e.textContent, e.tagName, e.title])), [
     ['good at knots', 'A', 'Good at [something]: Take +1 when they help with it.'], ['jumpy', 'A', 'jumpy: Startles easily.'],
   ], 'tags the Rules tab defines are chips linking to them');
+  assert.equal(await p.$eval('.crewsheet .tagchip', e => getComputedStyle(e).cursor), 'help');
   assert.equal(await p.textContent('.crewsheet .tagtext'), '1-harm', 'the rest are plain text');
   await p.click('.crewsheet a.tagchip >> text=good at knots');
   await p.waitForSelector('.gloss.hl');

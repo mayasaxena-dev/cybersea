@@ -468,22 +468,27 @@ test('kit: fill from a kit, add and remove items, treasure carries into hoard', 
 
 test('items take tags from the Rules tab’s tag groups their kit names, or typed in', async () => {
   const base = (await h.tab(api, 'Testa')).map(r => r.slice(0, 4)).filter(r => r[0] !== 'item' && r[0] !== 'log');
-  await h.setTab(api, 'Testa', [...base, ['item', 'Cutlass', '', 'Tags: loud, 2-harm\n\nA gift.'], ['item', 'Rope', '', '']]);
+  await h.setTab(api, 'Testa', [...base, ['item', 'Cutlass', '', 'Tags: loud, sharp, 2-harm\n\nA gift.'], ['item', 'Rope', '', '']]);
   const p = await openSheet();
   await p.click('[data-act="tab"][data-tab="kit"]');
   await p.waitForSelector('[data-list="item"] .tags');
   const chip = '[data-list="item"] .item:has-text("Cutlass") a.tagchip';
   assert.equal(await p.textContent(chip), 'loud');
   assert.match(await p.getAttribute(chip, 'href'), /rules\.html.*tag=loud/, 'a Rules tag links to its entry');
+  assert.equal(await p.$eval(chip, e => getComputedStyle(e).cursor), 'help', 'a described tag shows the help cursor');
+  const bare = '[data-list="item"] .item:has-text("Cutlass") a.tagchip:has-text("sharp")';
+  assert.deepEqual(await p.$eval(bare, e => [e.hasAttribute('title'), getComputedStyle(e).cursor]), [false, 'pointer'], 'one without a description only links');
   assert.match(await p.textContent('[data-list="item"] .item:has-text("Cutlass") .tagtext'), /2-harm/, 'anything else is text');
   assert.equal(await p.textContent('[data-list="item"] .item:has-text("Cutlass") .inote'), 'A gift.');
 
   await p.click('[data-act="edit"]');
-  assert.deepEqual(await p.$$eval('#taglist-item option', os => os.map(o => o.value)), ['shiny', 'loud'], 'the kit’s tags=item,weapon, not the crew’s');
+  assert.deepEqual(await p.$$eval('#taglist-item option', os => os.map(o => o.value)), ['shiny', 'loud', 'sharp'], 'the kit’s tags=item,weapon, not the crew’s');
   await p.fill('#newtag-item-1', 'shiny');
   await p.press('#newtag-item-1', 'Enter');
   await p.fill('#newtag-item-1', 'heavy, wet');
   await p.click('[data-act="add-tag"][data-tags="item-1"]');
+  assert.equal(await p.$eval('.item.edit .tagchip', e => getComputedStyle(e).cursor), 'help', 'in edit mode too');
+  await p.click('[data-act="rm-tag"][data-tags="item-0"][data-k="1"]');
   await p.click('[data-act="rm-tag"][data-tags="item-0"][data-k="0"]');
   assert.equal(await p.inputValue('[data-bind="item:0:note"]'), 'A gift.', 'the notes field has only the notes');
   await p.click('[data-act="edit"]');
