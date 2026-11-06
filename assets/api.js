@@ -294,6 +294,7 @@ export class GameClient extends Emitter {
     this.game = game;
     this.stores = new Map();
     this.watched = new Set();
+    this.along = new Set(); // tabs every read brings too (see readAlong)
     this.status = 'idle';
     this.error = '';
     this.role = game.role || null;
@@ -411,6 +412,7 @@ export class GameClient extends Emitter {
 
   // Fetch tabs; only tabs that changed since our cached copy come back with rows.
   async read(names = [...this.watched]) {
+    names = [...new Set([...names, ...this.along])];
     const have = {};
     for (const n of names) { const s = this.tab(n); if (s.server.d) have[s.name] = s.server.d; }
     this.reading = true;
@@ -459,6 +461,9 @@ export class GameClient extends Emitter {
   }
 
   watch(...names) { names.forEach(n => this.watched.add(n)); }
+
+  // Tabs kept up to date on every page, whatever it reads (the shared rolls).
+  readAlong(...names) { names.forEach(n => { this.along.add(n); this.watched.add(n); }); }
 
   // Keep the watched tabs up to date while the page is visible; flush pending edits when it's
   // hidden or closed. With live updates (see listen), the page reads only when the sheet pings;
