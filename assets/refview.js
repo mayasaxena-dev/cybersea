@@ -73,7 +73,7 @@ function playbookHTML(R, p) {
   const items = (rs, f) => rs.map(f).join('');
   // A playbook's own track sizes (harm=8): shown under the game's names for those tracks.
   const meta = systemOf(R, typeOf(R, p.name)).tracks.map(t => [t, p.meta[t.name.toLowerCase()] ?? (t.role ? p.meta[t.role] : undefined)]).filter(([, v]) => v != null && v !== true).map(([t, v]) => `${t.name} ${v}`).join(' · ');
-  return `<details class="move pb"><summary><span class="mn">${escTxt(p.name)}</span>${meta ? `<span class="cnt">${escTxt(meta)}</span>` : ''}</summary><div class="mbody">
+  return `<details class="move pbook"><summary><span class="mn">${escTxt(p.name)}</span>${meta ? `<span class="cnt">${escTxt(meta)}</span>` : ''}</summary><div class="mbody">
     ${p.text ? md(p.text) : ''}
     ${part('Vice', items(pb.vices, v => `<p><b>${escTxt(v.name)}.</b></p>${md(v.text)}${origHTML(v)}`))}
     ${part('Oddities', items(pb.oddities, o => `<p><b>${escTxt(o.name)}</b>${o.meta.traits ? ` <span class="cnt">${escTxt(o.meta.traits)}</span>` : ''}</p>${md(o.text)}${origHTML(o)}`))}

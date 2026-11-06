@@ -209,7 +209,14 @@ test('rules page: sections, search, and no GM-only rules for the crew', async ()
   await p.waitForSelector('#ref :text("No matches")');
   await p.fill('#q', '');
   await p.click('.cats button:has-text("Playbooks")');
-  assert.deepEqual(await p.$$eval('#ref .move.pb .mn', ms => ms.map(m => m.textContent)), ['Trickster', 'Brute', 'Skiff']);
+  assert.deepEqual(await p.$$eval('#ref .move.pbook .mn', ms => ms.map(m => m.textContent)), ['Trickster', 'Brute', 'Skiff']);
+  // a playbook opens below its name in sentence case, not beside it in capitals (the sheet's .pb)
+  await p.click('#ref .move.pbook >> nth=0 >> summary');
+  const look = await p.$eval('#ref .move.pbook', d => {
+    const s = d.querySelector('summary').getBoundingClientRect(), b = d.querySelector('.mbody').getBoundingClientRect();
+    return { below: b.top >= s.bottom, upper: getComputedStyle(d.querySelector('.mbody')).textTransform === 'uppercase' };
+  });
+  assert.deepEqual(look, { below: true, upper: false });
 });
 
 test("rules page: a row's override first, with the book's under it", async () => {
@@ -220,6 +227,24 @@ test("rules page: a row's override first, with the book's under it", async () =>
   await p.waitForSelector('#ref details.orig');
   assert.match(await p.textContent('#ref .mbody'), /Club, sack, data cable/);
   assert.match(await p.textContent('#ref details.orig'), /Club, sack, rope/);
+});
+
+test('long kit items and notes stay inside their card', async () => {
+  const { sampleCharacter, HEADER } = await import('../fixtures/game.mjs');
+  const long = 'word '.repeat(60).trim();
+  await h.setTab(g1, 'Kitty', [HEADER, ...sampleCharacter.filter(r => r[1] !== 'Name'), ['info', 'Name', 'Kitty', ''],
+    ['item', `Lantern (${long})`, '', ''], ['item', 'Box', '', long]]);
+  const p = await h.page({ width: 900 });
+  await p.goto(`${h.srv.site}/sheet.html?c=Kitty#join=${invite(g1.url)}`);
+  await p.click('[data-act="tab"][data-tab="kit"]');
+  await p.waitForSelector('[data-list="item"] .inote');
+  const fit = await p.evaluate(() => {
+    const card = document.querySelector('[data-list="item"]').getBoundingClientRect();
+    const out = [...document.querySelectorAll('[data-list="item"] .item')].filter(i => i.getBoundingClientRect().right > card.right);
+    return { page: document.documentElement.scrollWidth <= innerWidth, items: out.length };
+  });
+  assert.deepEqual(fit, { page: true, items: 0 });
+  await h.setTab(g1, 'Kitty', null);
 });
 
 const place = (rows, name) => (rows || []).find(r => r[1] === name && !r[2]);
