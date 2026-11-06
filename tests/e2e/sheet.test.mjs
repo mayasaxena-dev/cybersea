@@ -265,6 +265,7 @@ test('actions: session, chapter’s end, downtime with a rolled move, level up',
   await p.click('[data-act="tab"][data-tab="moves"]');
   await p.click('[data-act="cat"][data-cat="downtime"]');
   assert.ok(await p.isDisabled('details[data-id="downtime:LEAVE DOWNTIME"] .chip'), 'not in downtime yet');
+  assert.ok(await p.isDisabled('details[data-id="downtime:DICE GAME"] .chip'), 'downtime moves wait for downtime');
   await p.click('details[data-id="downtime:BEGIN DOWNTIME"] .chip');
   await p.check('input[name=where][value="1"]'); // At sea, the second choice
   await p.click('[data-run]');
@@ -284,6 +285,7 @@ test('actions: session, chapter’s end, downtime with a rolled move, level up',
   await p.click('[data-act="tab"][data-tab="log"]');
   assert.match(await p.textContent('.dtbar'), /At sea 1\/1/);
   await p.click('[data-act="tab"][data-tab="moves"]');
+  assert.ok(await p.isDisabled('details[data-id="downtime:DICE GAME"] .chip'), 'no downtime moves left at sea');
   await p.click('details[data-id="downtime:LEAVE DOWNTIME"] .chip');
   await p.click('[data-run]');
   await p.click('[data-act="tab"][data-tab="log"]');
@@ -327,6 +329,29 @@ test('moves that spend luck have a button that spends it', async () => {
   assert.equal(await track(p, 'luck'), '●●●○○○○○');
   const rows = await until(async () => { const r = await h.tab(api, 'Testa'); return row(r, 'track', 'Luck')[2] === '●●●○○○○○' && r; });
   assert.ok(rows, 'saved to the sheet');
+});
+
+test('every move can be made by someone; moves not taken are off', async () => {
+  const { sampleCharacter, HEADER } = await import('../fixtures/game.mjs');
+  await h.setTab(api, 'Testa', [HEADER, ...sampleCharacter, ['move', 'HEX', '●', '']]);
+  const p = await openSheet();
+  await p.click('[data-act="tab"][data-tab="moves"]');
+  assert.ok(await p.isDisabled('details[data-id="playbook:OMEN"] [data-act="roll-move"]'), 'an unmarked move can’t be rolled');
+  assert.ok(await p.isDisabled('details[data-id="playbook:BAD PENNY"] [data-act="use-move"]'));
+  // a move with nothing to roll or spend is used, and the use goes in the log
+  await p.click('details[data-id="playbook:HEX"] [data-act="use-move"]');
+  await p.click('details[data-id="playbook:HEX"] [data-act="use-move"]');
+  assert.deepEqual(await p.$$eval('.usage li', ls => ls.map(l => l.textContent)), ['HEX ×2']);
+  await p.click('.usage [data-log]');
+  assert.ok(await until(async () => (await h.tab(api, 'Testa')).some(r => r[0] === 'log' && r[2] === 'HEX ×2')));
+  // a ship move rolls the ship's stat on a character's sheet
+  assert.match(await p.textContent('details[data-id="ship:RAM IT"] [data-act="roll-move"]'), /Steadfast 0/i);
+  assert.match(await p.textContent('details[data-id="ship:CHART A COURSE"] [data-act="roll-move"]'), /Spitfire \+2/i);
+  // and on the ship's page, the signed-in character's
+  await p.goto(`${h.srv.site}/ship.html#join=${invite(api.url)}`);
+  await p.click('[data-act="tab"][data-tab="moves"]');
+  await p.waitForSelector('details[data-id="ship:CHART A COURSE"] [data-act="roll-move"]');
+  assert.match(await p.textContent('details[data-id="ship:CHART A COURSE"] [data-act="roll-move"]'), /Spitfire \+2/i);
 });
 
 test('session ends: the vice and marked moves that end-of-session touches', async () => {
