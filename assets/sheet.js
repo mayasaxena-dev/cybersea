@@ -427,17 +427,22 @@ function listHTML({ kind, def }, E, can) {
   let h = `<section class="card" data-list="${kind}"><div class="shead"><h2>${escTxt(def?.title || 'Items')}</h2><span class="cnt">${arr.length}</span></div>` +
     (note ? `<div class="note">${escTxt(note)}</div>` : '') + '<ul class="items">' +
     arr.map((it, j) => (E ? itemEditHTML(kind, it, j) : itemHTML(kind, it, j, can))).join('') + '</ul>' +
-    (E ? `<div class="additem"><input class="in" id="${newId(kind)}" placeholder="Add an item" aria-label="${esc(`New ${lw(def?.title || 'item')}`)}" autocomplete="off"><button class="pbtn" data-act="add-item" data-kind="${kind}">Add</button></div>` : '');
+    (E ? `<div class="additem"><input class="in" id="${newId(kind)}" placeholder="Add an item" aria-label="${esc(`New ${lw(def?.title || 'item')}`)}" autocomplete="off"><button class="pbtn" data-act="add-item" data-kind="${kind}">Add</button></div>` +
+      tagListHTML(R, def?.tags, tagListId(kind)) : '');
   if (s && E) h += `<textarea class="in rtext" data-bind="sec:${si}:text" aria-label="${esc(`${s.title} notes`)}" placeholder="Notes">${escTxt(s.text || '')}</textarea>`;
   else if (s?.text) h += `<div class="rich" data-sec="${si}">${md(s.text)}</div>`;
   return h + '</section>';
 }
 
+// An item's tags come from the Rules tab's tag groups its list's section names (tags=).
+const tagListId = kind => `taglist-${kind}`;
+const itemTagsHTML = (kind, it, j, edit) => tagsHTML(it.tags, { R, group: lists().find(l => l.kind === kind)?.def?.tags, game: client.game, edit, key: `${kind}-${j}`, list: tagListId(kind) });
+
 // Outside edit mode an item can only be used: its count goes down and the use is logged.
 function itemHTML(kind, it, j, can) {
   const out = it.count === 0;
   return `<li class="item${out ? ' out' : ''}"><div class="ibody"><span class="iname">${escTxt(it.name)}</span>` +
-    (it.count != null ? `<span class="cnt">×${it.count}</span>` : '') +
+    (it.count != null ? `<span class="cnt">×${it.count}</span>` : '') + itemTagsHTML(kind, it, j, false) +
     (it.note ? `<div class="inote">${escTxt(plain(it.note))}</div>` : '') + '</div>' +
     (can ? `<button class="chip" data-act="use-item" data-kind="${kind}" data-j="${j}"${out ? ' disabled title="None left"' : ` title="Use ${esc(it.name)}"`}>Use</button>` : '') + '</li>';
 }
@@ -447,6 +452,7 @@ function itemEditHTML(kind, it, j) {
   return `<li class="item edit"><div class="irow"><input class="in" data-bind="${kind}:${j}:name" value="${esc(it.name)}" aria-label="Item">` +
     `<input class="in icount" type="number" min="0" step="1" data-bind="${kind}:${j}:count" value="${it.count ?? ''}" placeholder="—" aria-label="How many ${esc(it.name)}" title="How many (blank if not counted)">` +
     `<button class="mini del" data-act="rm-item" data-kind="${kind}" data-j="${j}" title="Remove" aria-label="Remove ${esc(it.name)}">×</button></div>` +
+    itemTagsHTML(kind, it, j, true) +
     `<textarea class="in rtext inote" data-bind="${kind}:${j}:note" aria-label="Notes on ${esc(it.name)}" placeholder="Notes">${escTxt(it.note || '')}</textarea></li>`;
 }
 
@@ -550,7 +556,7 @@ function addItem(kind) {
   const v = el?.value.trim();
   if (!v || !canEdit() || !editing) return;
   const arr = listOf(kind);
-  arr.push({ name: uniqueName(v, arr.map(i => i.name)), count: null, note: '' });
+  arr.push({ name: uniqueName(v, arr.map(i => i.name)), count: null, tags: '', note: '' });
   changed();
   render();
   document.getElementById(newId(kind))?.focus();
@@ -608,14 +614,19 @@ function crewTrackHTML(cs, c, j) {
 function crewTagsHTML(cs, c, j) {
   return tagsHTML(c.tags, { R, group: cs.tagGroup, game: client.game, edit: editing, key: `crew-${j}` });
 }
-function addCrewTag(j) {
-  const c = st.crew[j];
-  const el = document.getElementById(`newtag-crew-${j}`);
+// A tag list's key (tagsHTML): crew-<j>, item-<j> or cargo-<j>.
+function tagsOf(key) {
+  const m = String(key).match(/^(crew|item|cargo)-(\d+)$/);
+  return m ? (m[1] === 'crew' ? st.crew : listOf(m[1]))[+m[2]] || null : null;
+}
+function addTagTo(key) {
+  const c = tagsOf(key);
+  const el = document.getElementById(`newtag-${key}`);
   if (!c || !el || !canEdit() || !editing) return;
   const next = addTag(c.tags, el.value);
   if (next !== c.tags) { c.tags = next; changed(); }
   render();
-  document.getElementById(`newtag-crew-${j}`)?.focus();
+  document.getElementById(`newtag-${key}`)?.focus();
 }
 
 function crewHTML(cs, c, j, all) {
@@ -836,15 +847,16 @@ app.addEventListener('click', e => {
     case 'pic-add': if (editing && !uploading) pickPicture(rowOfAttr(b.dataset.row)); break;
     case 'pic-rm': if (editing && !uploading && armed(b)) takePictureOff(rowOfAttr(b.dataset.row)); break;
     case 'add-crew': addCrew(); break;
-    case 'add-tag': addCrewTag(+b.dataset.tags.slice(5)); break;
+    case 'add-tag': addTagTo(b.dataset.tags); break;
     case 'rm-tag': {
-      const c = st.crew[+b.dataset.tags.slice(5)];
+      const c = tagsOf(b.dataset.tags);
       if (!c || !canEdit() || !editing) break;
+      const arr = st.crew.includes(c) ? st.crew : st.items.includes(c) ? st.items : st.cargo;
       const was = c.tags;
       const tag = splitTags(was)[+b.dataset.k];
       c.tags = removeTag(was, +b.dataset.k);
       changed(); render();
-      deletedToast(tag, () => { const x = byName(st.crew, c.name); if (x && canEdit()) { x.tags = was; changed(); render(); } });
+      deletedToast(tag, () => { const x = byName(arr, c.name); if (x && canEdit()) { x.tags = was; changed(); render(); } });
       break;
     }
     case 'rm-crew': if (canEdit() && editing && armed(b)) removed(st.crew[+b.dataset.j]?.name, st.crew, +b.dataset.j); break;
@@ -983,8 +995,8 @@ app.addEventListener('toggle', e => {
 document.addEventListener('keydown', e => {
   const nk = LISTS.find(([kind]) => e.target.id === newId(kind));
   if (e.key === 'Enter' && nk) { e.preventDefault(); addItem(nk[0]); return; }
-  const nt = e.target.id?.match(/^newtag-crew-(\d+)$/);
-  if (e.key === 'Enter' && nt) { e.preventDefault(); addCrewTag(+nt[1]); return; }
+  const nt = e.target.id?.match(/^newtag-(.+)$/);
+  if (e.key === 'Enter' && nt && tagsOf(nt[1])) { e.preventDefault(); addTagTo(nt[1]); return; }
   if (e.key === '/' && !e.target.closest('input,textarea,select') && !document.getElementById('overlay')) {
     e.preventDefault();
     if (ui.tab !== 'moves') { ui.tab = 'moves'; saveUi(); render(); }

@@ -309,7 +309,11 @@ it's edited only in the spreadsheet.
   `fill=` (vices, oddity, kit, specials, questions, lastwords: copied from the playbook). Its Text
   is the card's starting note; `{Fortune+5}` in it is worked out. The `role=kit` and `role=cargo`
   cards list the sheet's `item` and `cargo` rows (`item | Name | how many | Notes`;
-  leave how many blank for things that aren't counted); a new sheet's kit becomes `item` rows. The bonds section's `size=` is
+  leave how many blank for things that aren't counted); a new sheet's kit becomes `item` rows. An
+  item's Notes can start with a `Tags: loud, 2-harm` line, then a blank line and its notes. Their
+  section's `tags=` (e.g. `tags=item,weapon,range,armor`) names the Rules tab's tag groups its items'
+  tags are picked from and explained by; without it, every tag group. Tags not in those groups are
+  kept as plain text. The bonds section's `size=` is
   the pips per bond and `full=xp:1` what filling one gives. The `role=crew` card is the ship
   page's crew tab (see [The ship's crew](#the-ships-crew)).
 - `choice`: an option. Group `chapter-end` (`pick` for the two picks; `gain=xp:1`, `heal=harm:2`,

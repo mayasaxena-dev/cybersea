@@ -184,6 +184,9 @@ a.tagchip:hover{border-color:var(--blue)}
 .tagwrap .mini{margin:0}
 .tagtext{align-self:center;font-size:13px;color:var(--muted)}
 .tagwrap .tagtext{padding:3px 4px}
+.item .ibody .tags{flex-basis:100%;margin-top:2px}
+.item.edit .tags{margin-top:0}
+.item.edit .additem{margin-top:0}
 .gloss.hl{background:var(--panel2);box-shadow:inset 3px 0 0 var(--blue)}
 .crewsheet.hl{border-color:var(--cyan);box-shadow:0 0 0 1px var(--cyan)}
 .kept .kn h3{margin:12px 0 2px;font:700 12px/1.2 "Chakra Petch",sans-serif;letter-spacing:.08em;text-transform:uppercase;color:var(--muted)}

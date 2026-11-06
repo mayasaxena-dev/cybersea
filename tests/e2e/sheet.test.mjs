@@ -424,6 +424,32 @@ test('kit: fill from a kit, add and remove items, treasure carries into hoard', 
   assert.match(row(rows, 'kit', 'Treasure')[2], /6-treasure/);
 });
 
+test('items take tags from the Rules tab’s tag groups their kit names, or typed in', async () => {
+  const base = (await h.tab(api, 'Testa')).map(r => r.slice(0, 4)).filter(r => r[0] !== 'item' && r[0] !== 'log');
+  await h.setTab(api, 'Testa', [...base, ['item', 'Cutlass', '', 'Tags: loud, 2-harm\n\nA gift.'], ['item', 'Rope', '', '']]);
+  const p = await openSheet();
+  await p.click('[data-act="tab"][data-tab="kit"]');
+  await p.waitForSelector('[data-list="item"] .tags');
+  const chip = '[data-list="item"] .item:has-text("Cutlass") a.tagchip';
+  assert.equal(await p.textContent(chip), 'loud');
+  assert.match(await p.getAttribute(chip, 'href'), /rules\.html.*tag=loud/, 'a Rules tag links to its entry');
+  assert.match(await p.textContent('[data-list="item"] .item:has-text("Cutlass") .tagtext'), /2-harm/, 'anything else is text');
+  assert.equal(await p.textContent('[data-list="item"] .item:has-text("Cutlass") .inote'), 'A gift.');
+
+  await p.click('[data-act="edit"]');
+  assert.deepEqual(await p.$$eval('#taglist-item option', os => os.map(o => o.value)), ['shiny', 'loud'], 'the kit’s tags=item,weapon, not the crew’s');
+  await p.fill('#newtag-item-1', 'shiny');
+  await p.press('#newtag-item-1', 'Enter');
+  await p.fill('#newtag-item-1', 'heavy, wet');
+  await p.click('[data-act="add-tag"][data-tags="item-1"]');
+  await p.click('[data-act="rm-tag"][data-tags="item-0"][data-k="0"]');
+  assert.equal(await p.inputValue('[data-bind="item:0:note"]'), 'A gift.', 'the notes field has only the notes');
+  await p.click('[data-act="edit"]');
+  const rows = await until(async () => { const r = await h.tab(api, 'Testa'); return row(r, 'item', 'Cutlass')?.[3] === 'Tags: 2-harm\n\nA gift.' && r; });
+  assert.equal(row(rows, 'item', 'Rope')[3], 'Tags: shiny, heavy wet');
+  assert.equal(await p.textContent('[data-list="item"] .item:has-text("Rope") a.tagchip'), 'shiny');
+});
+
 test('items have counts and notes; using one, or changing the sheet outside edit mode, can go in the log', async () => {
   const base = (await h.tab(api, 'Testa')).map(r => r.slice(0, 4)).filter(r => r[0] !== 'item' && r[0] !== 'log');
   await h.setTab(api, 'Testa', [...base, ['item', 'Medkit', '2', 'From the clinic.'], ['item', 'Rope', '', '']]);
