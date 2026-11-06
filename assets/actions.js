@@ -336,6 +336,17 @@ export function makeActions(ctx) {
     return { kind, label: label(kind), ok: begin ? !dt : dt, why: begin ? `${label('leave-downtime')} first` : `${label('begin-downtime')} first` };
   }
 
+  // Why a move can't be made now, or '': a move in the downtime group (the group of the move
+  // with action=begin-downtime) needs a downtime with a slot left (slots= on where it began).
+  function why(move) {
+    const g = dtGroup();
+    if (!g || low(move.cat) !== g || move.meta?.action) return '';
+    const dt = st().state.downtime;
+    if (!dt) return `${label('begin-downtime')} first`;
+    if (dt.slots > 0 && (dt.moves || []).length >= dt.slots) return `No ${g} moves left`;
+    return '';
+  }
+
   // What a move spends outright (spend=luck:1; luck:x asks how much), and whether there's enough.
   function cost(move) {
     const e = effects(move.meta?.spend)[0];
@@ -380,5 +391,5 @@ export function makeActions(ctx) {
     return true;
   }
 
-  return { open, logHTML, noteRoll, forMove, cost, spend, dtGroup };
+  return { open, logHTML, noteRoll, forMove, why, cost, spend, dtGroup };
 }

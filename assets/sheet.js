@@ -83,6 +83,7 @@ let couldEdit = canEdit();
 client.on(e => {
   if (e.list || e.key) refreshNav(client, PAGE);
   if ((e.me || e.list || e.key || e.auth) && canEdit() !== couldEdit) { couldEdit = canEdit(); render(); }
+  else if (SHIP && e.me) render(); // ship moves roll with the signed-in character's stats
 });
 
 // Changes made outside edit mode offer to go in the log (usage.js), or to be undone.
@@ -159,6 +160,15 @@ function moveList() {
   }
   for (const cat of CATS().slice(1)) for (const m of R.moves(cat)) out.push({ cat, name: m.name, text: m.text, meta: m.meta, marked: true });
   return out;
+}
+
+// Whose stats a move rolls. A ship move can name the ship's stats or the crew member's making it, so
+// on a character's sheet it has both; on the ship's page, the signed-in character's join the ship's.
+function rollStats() {
+  const of = name => (name ? parseSheet(client.tab(name).rows).stats : []);
+  if (SHIP) { const both = [...st.stats, ...of(client.me)]; return () => both; }
+  const both = [...st.stats, ...of('Ship')];
+  return m => (m.cat.toLowerCase() === SHIP_TYPE ? both : st.stats);
 }
 
 const catLabel = c => (c === 'playbook' ? st.info.playbook || 'Playbook' : cap(c));
@@ -334,29 +344,49 @@ function moveHTML(m, i, forceOpen) {
       (m.custom ? `<button class="mini del" data-act="rm-move" data-name="${esc(m.name)}" aria-label="Delete">×</button>` : '') +
       `</div><textarea class="in rtext" data-bind="move:${esc(encodeURIComponent(m.name))}:text" aria-label="${esc(m.name)}">${escTxt(m.text || '')}</textarea></div>`;
   }
-  const r = rollOf(m.meta, st.stats);
-  const chip = r ? `<button class="chip" data-act="roll-move" data-i="${i}" title="Roll">${ICON.die}<span>${escTxt(r.label)}${r.stat ? ' ' + fmt(r.mod) : ''}</span></button>` : '';
-  const a = canEdit() && actions.forMove(m);
-  const act = a ? `<button class="chip" data-act="run" data-kind="${a.kind}"${a.ok ? ` title="${esc(a.label)}"` : ` title="${esc(a.why)}" disabled`}>${escTxt(a.label)}</button>` : '';
-  const lc = canEdit() && !SHIP && actions.cost(m);
-  const luck = lc ? `<button class="chip" data-act="spend" data-i="${i}" title="${esc(lc.ok ? `Spend ${lc.word}` : `Not enough ${lc.word}`)}"${lc.ok ? '' : ' disabled'}>${escTxt(lc.n ? `${lc.n} ${lc.word}` : cap(lc.word))}</button>` : '';
+  const no = m.cat === 'playbook' && !m.marked ? 'Not marked' : actions.why(m);
+  const tip = (ok, why = no) => (why ? ` title="${esc(why)}" disabled` : ` title="${esc(ok)}"`);
+  const r = rollOf(m.meta, m.stats || st.stats);
+  const roll = typeof m.meta.roll === 'string' && m.meta.roll.trim();
+  const chip = r ? `<button class="chip" data-act="roll-move" data-i="${i}"${tip('Roll')}>${ICON.die}<span>${escTxt(r.label)}${r.stat ? ' ' + fmt(r.mod) : ''}</span></button>`
+    : roll ? `<button class="chip"${tip('', no || (SHIP && !client.me ? 'Sign in as a character to roll this' : `No ${roll} to roll`))}>${ICON.die}<span>${escTxt(roll)}</span></button>` : '';
+  // What changes the sheet shows to everyone, but works only for whoever can edit it.
+  const lock = canEdit() ? '' : SHIP ? 'Sign in to use this' : `Sign in as ${st.info.name || tabName} to use this`;
+  const a = actions.forMove(m);
+  const act = a ? `<button class="chip" data-act="run" data-kind="${a.kind}"${tip(a.label, lock || (a.ok ? '' : a.why))}>${escTxt(a.label)}</button>` : '';
+  const lc = !SHIP && actions.cost(m);
+  const luck = lc ? `<button class="chip" data-act="spend" data-i="${i}"${tip(`Spend ${lc.word}`, lock || no || (lc.ok ? '' : `Not enough ${lc.word}`))}>${escTxt(lc.n ? `${lc.n} ${lc.word}` : cap(lc.word))}</button>` : '';
+  // A move with nothing to roll, spend or run is still made: Use offers it for the log.
+  const use = !chip && !act && !luck && !editing ? `<button class="chip" data-act="use-move" data-i="${i}"${tip('Log that this move was made', lock || no)}>Use</button>` : '';
   const open = forceOpen || openSet.has(id);
-  return `<details class="move${m.cat === 'playbook' && !m.marked ? ' off' : ''}" data-id="${esc(id)}"${open ? ' open' : ''}><summary>${mk}<span class="mn">${escTxt(m.name)}</span>${chip}${luck}${act}</summary>` +
+  return `<details class="move${m.cat === 'playbook' && !m.marked ? ' off' : ''}" data-id="${esc(id)}"${open ? ' open' : ''}><summary>${mk}<span class="mn">${escTxt(m.name)}</span>${chip}${luck}${act}${use}</summary>` +
     `<div class="mbody"${m.own ? ` data-move="${esc(m.name)}"` : ''}>${md(m.text)}</div></details>`;
 }
+
+// Moves that can't be made now (not taken, or out of their time) stay off the list unless asked for.
+const offNow = m => {
+  if (m.cat === 'playbook' && !m.marked) return true;
+  const a = actions.forMove(m);
+  return a ? !a.ok : !!actions.why(m);
+};
 
 let lastMoves = [];
 function moveListHTML() {
   const q = query.trim().toLowerCase();
   const all = moveList();
   lastMoves = all;
+  const rolls = rollStats();
+  all.forEach(m => { m.stats = rolls(m); });
   const cats = ui.cat === 'all' ? CATS() : [ui.cat];
+  const filter = !editing && !q;
   let out = '';
+  let off = 0;
   for (const c of cats) {
     const items = [];
     all.forEach((m, i) => {
       if (m.cat !== c) return;
       if (q && !`${m.name} ${m.text}`.toLowerCase().includes(q)) return;
+      if (filter && offNow(m)) { off++; if (!ui.more) return; }
       items.push(moveHTML(m, i, !!q));
     });
     if (!items.length && !(editing && c === 'playbook' && !q)) continue;
@@ -364,7 +394,8 @@ function moveListHTML() {
       (editing && c === 'playbook' ? '<button class="add sm" data-act="add-move">+</button>' : '') + '</div>';
   }
   if (R.empty && !out) return '<div class="empty">The Rules tab hasn’t loaded yet.</div>';
-  return out || '<div class="empty">No moves match.</div>';
+  const more = off ? `<div class="cats mmore"><button data-act="more" aria-pressed="${!!ui.more}" class="${ui.more ? 'on' : ''}">${ui.more ? 'Hide moves not available now' : `Show ${off} move${off === 1 ? '' : 's'} not available now`}</button></div>` : '';
+  return (out || (off ? '' : '<div class="empty">No moves match.</div>')) + more;
 }
 
 function movesHTML() {
@@ -843,6 +874,7 @@ app.addEventListener('click', e => {
     case 'edit': editing = !editing && canEdit(); render(); if (!editing) later.run(); break;
     case 'tab': ui.tab = b.dataset.tab; saveUi(); render(); break;
     case 'cat': ui.cat = b.dataset.cat; saveUi(); render(); break;
+    case 'more': ui.more = !ui.more; saveUi(); render(); break;
     case 'sheet-menu': sheetMenu(); break;
     case 'pic-add': if (editing && !uploading) pickPicture(rowOfAttr(b.dataset.row)); break;
     case 'pic-rm': if (editing && !uploading && armed(b)) takePictureOff(rowOfAttr(b.dataset.row)); break;
@@ -863,7 +895,7 @@ app.addEventListener('click', e => {
     case 'roll-stat': { const s = st.stats[i]; doRoll(s.k, s.v, 2); break; }
     case 'roll-move': {
       const m = lastMoves[i];
-      const r = m && rollOf(m.meta, st.stats);
+      const r = m && rollOf(m.meta, m.stats || st.stats);
       if (!r) break;
       doRoll(r.stat || r.ask ? `${m.name} · ${r.label}` : m.name, r.mod, r.dice, ({ total }) => {
         if (canEdit() && actions.noteRoll(m, total)) changed();
@@ -885,6 +917,11 @@ app.addEventListener('click', e => {
     case 'rm-move': if (armed(b)) removed(b.dataset.name, st.moves, st.moves.findIndex(m => m.name === b.dataset.name)); break;
     case 'run': if (canEdit()) actions.open(b.dataset.kind); break;
     case 'spend': if (canEdit() && lastMoves[i]) actions.spend(lastMoves[i]); break;
+    case 'use-move': {
+      const m = lastMoves[i];
+      if (m && canEdit()) used(`mv:${m.name.toLowerCase()}`, 1, k => (k > 1 ? `${m.name} ×${k}` : m.name));
+      break;
+    }
     case 'rm-log': if (armed(b)) removed(`log entry: ${st.log[i]?.title}`, st.log, i); break;
     case 'dt-moves': ui.tab = 'moves'; ui.cat = actions.dtGroup() || 'all'; saveUi(); render(); break;
     case 'ship-create': if (canEdit()) createShip(); break;

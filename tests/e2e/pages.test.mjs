@@ -90,6 +90,8 @@ test('ship page: ship stats roll, ship moves only', async () => {
   await p.click('[data-act="roll-stat"][data-i="1"]');
   assert.match(await p.textContent('#toast'), /Speed/);
   await p.click('[data-act="tab"][data-tab="moves"]');
+  assert.deepEqual(await p.$$eval('.mgroup h3', hs => hs.map(x => x.textContent)), ['Ship moves'], 'the ship hasn’t marked its own move');
+  await p.click('[data-act="more"]');
   assert.deepEqual(await p.$$eval('.mgroup h3', hs => hs.map(x => x.textContent)), ['Skiff moves', 'Ship moves']);
   assert.equal(await p.$('[data-tab="log"]'), null, 'no actions tab for the ship');
 });
