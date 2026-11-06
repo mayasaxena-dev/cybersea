@@ -17,8 +17,9 @@ export const tagHref = (game, def) => href('rules.html', game, { tag: def.name, 
 export function tagsHTML(s, { R, group, game, edit = false, key, list = 'taglist' }) {
   const tags = splitTags(s).map((t, k) => ({ t, k, def: tagDef(R, t, group) }));
   const rm = (t, k) => (edit ? `<button class="mini del" data-act="rm-tag" data-tags="${esc(key)}" data-k="${k}" aria-label="${esc(`Take off ${t}`)}">×</button>` : '');
-  const chips = tags.filter(x => x.def).map(({ t, k, def }) => `<span class="tagwrap">${edit ? `<span class="tagchip" title="${esc(plain(def.text))}">${escTxt(t)}</span>`
-    : `<a class="tagchip" href="${esc(tagHref(game, def))}" title="${esc(`${def.name}: ${plain(def.text)}`)}">${escTxt(t)}</a>`}${rm(t, k)}</span>`);
+  const tip = (def, text) => (plain(def.text).trim() ? ` title="${esc(text)}"` : '');
+  const chips = tags.filter(x => x.def).map(({ t, k, def }) => `<span class="tagwrap">${edit ? `<span class="tagchip"${tip(def, plain(def.text))}>${escTxt(t)}</span>`
+    : `<a class="tagchip" href="${esc(tagHref(game, def))}"${tip(def, `${def.name}: ${plain(def.text)}`)}>${escTxt(t)}</a>`}${rm(t, k)}</span>`);
   const free = tags.filter(x => !x.def);
   const rest = edit ? free.map(({ t, k }) => `<span class="tagwrap"><span class="tagtext">${escTxt(t)}</span>${rm(t, k)}</span>`).join('')
     : free.length ? `<span class="tagtext">${free.map(x => escTxt(x.t)).join(', ')}</span>` : '';

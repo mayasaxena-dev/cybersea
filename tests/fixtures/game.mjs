@@ -131,6 +131,7 @@ export const rules = [
 
   R('tag', 'item', 'shiny', 'Worth more than it looks.'),
   R('tag', 'weapon', 'loud', 'Everyone hears it.'),
+  R('tag', 'weapon', 'sharp', ''),
   R('tag', 'npc', 'jumpy', 'Startles easily.'),
   R('tag', 'npc', 'Good at [something]', 'Take +1 when they help with it.'),
   R('tag', 'npc', 'Armor-x', 'Ignores that much harm.'),
