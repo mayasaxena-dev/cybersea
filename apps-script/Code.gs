@@ -116,6 +116,7 @@ function op_(role, req) {
     case 'image': return image_(role, req);
     case 'feedback': return withLock_(() => feedback_(req));
     case 'roll': return withLock_(() => roll_(req));
+    case 'unroll': return withLock_(() => unroll_(req));
     case 'show': return role === 'gm' ? withLock_(() => show_(req)) : forbidden_();
     case 'place': return role === 'gm' ? withLock_(() => place_(req)) : forbidden_();
     case 'images': return role === 'gm' ? images_() : forbidden_();
@@ -173,7 +174,7 @@ function forbidden_() {
 
 // Tabs named one of these are that kind; any other tab (but README and _hidden ones) is a character.
 const TAB_KINDS = ['rules', 'system', 'gm', 'lore', 'ship', 'map', 'feedback', 'images', 'rolls'];
-// Kinds the site never patches (tools/xlsx keeps the same lists). Rolls only grow, through roll_.
+// Kinds the site never patches (tools/xlsx keeps the same lists). Rolls change only through roll_ and unroll_.
 const SHEETS_ONLY = ['rules', 'system', 'map', 'feedback', 'images', 'rolls'];
 const sheetsOnly_ = kind => SHEETS_ONLY.indexOf(kind) >= 0;
 
@@ -736,6 +737,29 @@ function roll_(req) {
   const over = sh.getLastRow() - 1 - ROLLS_KEPT;
   if (over >= ROLLS_SENT) sh.deleteRows(2, over);
   touched_(ROLLS_TAB);
+  const at = Date.now();
+  const t = rollsTable_(sh);
+  return { ok: true, tab: sh.getName(), at, d: t.d, rows: t.rows };
+}
+
+/*
+ * unroll {row}: takes a shared roll off the Rolls tab. row is the roll's cells as a read sent them;
+ * the latest row that matches is cleared, and one that's gone already is no error. Who may take
+ * which roll off is the site's to say (the honor system, as for edits).
+ */
+function unroll_(req) {
+  const want = Array.isArray(req.row) ? req.row.map(c => String(c == null ? '' : c)) : [];
+  if (want.length !== ROLLS_HEADER.length || !want[0]) return { ok: false, error: 'Which roll?' };
+  const sh = findSheet_(SpreadsheetApp.getActiveSpreadsheet(), ROLLS_TAB);
+  if (!sh) return { ok: false, code: 'missing', error: 'No tab called "' + ROLLS_TAB + '".' };
+  const grid = sh.getDataRange().getDisplayValues();
+  for (let i = grid.length - 1; i >= 1; i--) {
+    if (want.every((c, j) => String(grid[i][j] == null ? '' : grid[i][j]) === c)) {
+      sh.deleteRow(i + 1);
+      touched_(ROLLS_TAB);
+      break;
+    }
+  }
   const at = Date.now();
   const t = rollsTable_(sh);
   return { ok: true, tab: sh.getName(), at, d: t.d, rows: t.rows };

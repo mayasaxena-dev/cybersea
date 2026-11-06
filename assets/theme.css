@@ -510,3 +510,7 @@ details.orig summary{cursor:pointer;font:600 11px/1.4 "Chakra Petch",sans-serif;
 .rpeek{pointer-events:auto;cursor:pointer;background:var(--panel);box-shadow:var(--shadow);animation:rpeek .2s ease-out}
 @keyframes rpeek{from{opacity:0;transform:translateY(8px)}}
 @media (prefers-reduced-motion: reduce){.rpeek{animation:none}}
+.rmanual{display:grid;gap:6px;padding-top:8px;border-top:1px solid var(--line)}
+.rmanual .rstat{flex:1;min-width:0}
+.rmanual .rdie{width:48px;text-align:center}
+.rbody{display:flex;flex-direction:column;gap:8px;min-height:0}
