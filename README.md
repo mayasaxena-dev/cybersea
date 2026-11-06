@@ -440,6 +440,66 @@ files it brings in.
 3. They send everyone new invite links. The old URL keeps working until the old owner deletes
    the deployment or the sheet.
 
+## A staging game
+
+Once the crew play on the real sheet, try changes on a second game instead: a staging copy of
+the real sheet, with its own script and deployment, that you keep. It keeps its URL, so its
+invite link keeps working across tries, and nothing done to it reaches the real game.
+
+### Setting it up (once)
+
+1. In the real game's sheet, choose **File → Make a copy** and name it so nobody mistakes it,
+   like `Cybersea (staging)`. The copy brings the script and its script properties
+   (`GM_KEY`, `FIREBASE_URL`, …), but not its triggers, its deployment or its Google Cloud
+   project.
+2. In the copy's Apps Script editor, open **Project Settings → Google Cloud Platform (GCP)
+   Project → Change project** and set the real game's project number (the one from
+   [Updating from the menu](#updating-from-the-menu)). Do this before deploying: a fresh copy
+   on its hidden project can fail to deploy with "The OAuth client is not fully created yet".
+3. Under **Script properties**, give `GM_KEY` a passphrase of its own, so the real GM link
+   never opens staging. Leave `FIREBASE_URL` as it is: the copy pings its own path in the same
+   database (the path comes from the spreadsheet's id), so the two games never hear each
+   other.
+4. Deploy it as in [3. Deploy it](#3-deploy-it), and allow what it asks.
+5. Add the **pushChange** trigger as in step 6 of [Live updates](#live-updates); triggers
+   aren't copied.
+6. Check it in `diag.html` with the new URL and the staging passphrase, then click **Open this
+   game** and copy the GM link and the crew invite somewhere private.
+
+### Trying a branch on it
+
+- **Script changes** (`apps-script/`): in the staging script's properties, set `UPDATE_FROM` to
+  `mayasaxena/cybersea@your-branch`, then pick **Cybersea → Update the script** in the staging
+  sheet. Pick it again after each push to the branch. When the branch is merged, set
+  `UPDATE_FROM` back to `mayasaxena/cybersea@main` (or delete it) and update the staging script
+  once more, then update the real game's script from its menu.
+- **Site changes**: check out the branch, run `npm run dev`, and open the staging invite with
+  its address swapped for `http://localhost:8080/`: keep everything from `#join=` on. Invite
+  links work on any copy of the site, because the game is in the part after `#`. The local
+  site keeps its own list of games (browsers keep it per address), so the real game isn't on
+  it unless you open its invite there too. Don't: a branch's site writes to whatever game it
+  has open.
+- The hosted site keeps running `main`, so the crew never see a branch. It can open the staging
+  game too, which shows how `main` behaves with the branch's script.
+
+### Bringing the real game's data in again
+
+The staging copy drifts from the real game as the crew play. To catch it up:
+
+1. In the real sheet, choose **File → Download → Microsoft Excel (.xlsx)**. The file holds the
+   whole game, rules and private notes included: keep it out of this repository (`.gitignore`
+   already skips `.xlsx` files) and delete it when done.
+2. In the staging sheet, pick **Cybersea → Import an xlsx…**, choose the file, tick every tab
+   (tick staging's own tabs the file doesn't have to remove them), untick **Keep this sheet's
+   changes**, and import. Each tab is replaced with the real one; the script, the passphrase,
+   the deployment and the invite links stay.
+3. The Images tab is never replaced by an import, and an .xlsx can't carry pictures placed in
+   cells. To bring the real pictures over, right-click the real sheet's **Images** tab →
+   **Copy to → Existing spreadsheet**, pick the staging sheet, then in staging delete its old
+   **Images** tab and rename **Copy of Images** to **Images**. Pictures placed in Map or Lore
+   cells (instead of named from the Images tab) don't come through. Open the staging Map page
+   to check the pictures show.
+
 ## Running the site locally (developers)
 
 ```
