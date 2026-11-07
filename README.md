@@ -491,9 +491,9 @@ invite link keeps working across tries, and nothing done to it reaches the real 
 ### Trying a branch on it
 
 - **Script changes** (`apps-script/`): in the staging script's properties, set `UPDATE_FROM` to
-  `anexasayam/cybersea@your-branch`, then pick **Cybersea → Update the script** in the staging
+  `mayasaxena/cybersea@your-branch`, then pick **Cybersea → Update the script** in the staging
   sheet. Pick it again after each push to the branch. When the branch is merged, set
-  `UPDATE_FROM` back to `anexasayam/cybersea@main` (or delete it) and update the staging script
+  `UPDATE_FROM` back to `mayasaxena/cybersea@main` (or delete it) and update the staging script
   once more, then update the real game's script from its menu.
 - **Site changes**: open the branch's preview (see [Branch previews](#branch-previews)) with the
   staging invite's address swapped for the preview's: keep everything from `#join=` on. Or check
