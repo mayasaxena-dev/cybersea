@@ -491,18 +491,48 @@ invite link keeps working across tries, and nothing done to it reaches the real 
 ### Trying a branch on it
 
 - **Script changes** (`apps-script/`): in the staging script's properties, set `UPDATE_FROM` to
-  `mayasaxena/cybersea@your-branch`, then pick **Cybersea → Update the script** in the staging
+  `anexasayam/cybersea@your-branch`, then pick **Cybersea → Update the script** in the staging
   sheet. Pick it again after each push to the branch. When the branch is merged, set
-  `UPDATE_FROM` back to `mayasaxena/cybersea@main` (or delete it) and update the staging script
+  `UPDATE_FROM` back to `anexasayam/cybersea@main` (or delete it) and update the staging script
   once more, then update the real game's script from its menu.
-- **Site changes**: check out the branch, run `npm run dev`, and open the staging invite with
-  its address swapped for `http://localhost:8080/`: keep everything from `#join=` on. Invite
-  links work on any copy of the site, because the game is in the part after `#`. The local
-  site keeps its own list of games (browsers keep it per address), so the real game isn't on
-  it unless you open its invite there too. Don't: a branch's site writes to whatever game it
-  has open.
+- **Site changes**: open the branch's preview (see [Branch previews](#branch-previews)) with the
+  staging invite's address swapped for the preview's: keep everything from `#join=` on. Or check
+  out the branch, run `npm run dev`, and use `http://localhost:8080/` the same way. Invite links
+  work on any copy of the site, because the game is in the part after `#`. Each preview keeps
+  its own list of games (browsers keep it per address), so the real game isn't on it unless you
+  open its invite there too. Don't: a branch's site writes to whatever game it has open.
 - The hosted site keeps running `main`, so the crew never see a branch. It can open the staging
   game too, which shows how `main` behaves with the branch's script.
+
+### Branch previews
+
+Cloudflare Pages can host every branch at its own address, so a branch can be tried from any
+browser or phone without checking it out. The site needs no build, so the setup is all in
+Cloudflare's dashboard (once):
+
+1. Sign in to [Cloudflare](https://dash.cloudflare.com/sign-up) (the free plan is enough).
+2. Go to **Workers & Pages → Create → Pages → Import an existing Git repository**, connect
+   GitHub, and give Cloudflare's app access to this repository. Installing the app needs
+   admin access to the repository's owner on GitHub.
+3. Pick the repository, set **Production branch** to `main`, **Framework preset** to *None*,
+   leave **Build command** empty and set **Build output directory** to `/`. Save and deploy.
+
+After that, each push to a branch deploys it to
+`https://<branch>.<project>.pages.dev/`, where `<branch>` is the branch name in lower case
+with anything other than letters and digits turned into `-` (so `claude/fix-map` becomes
+`claude-fix-map`), and each pull request gets a comment and a check with its preview link.
+Each branch's address stays the same across pushes, so a staging invite opened there once
+keeps working. `main` also lands on `https://<project>.pages.dev/`; the crew can keep using
+the usual site.
+
+Notes:
+
+- Previews show only the site. A branch that changes `apps-script/` also needs the staging
+  script updated from it, as above.
+- Preview addresses are public, like the repository: they hold no game. The game comes from
+  the invite, so share staging invites only with whoever is testing.
+- Cloudflare drops `.html` from page addresses (`/sheet.html` opens as `/sheet`). The site
+  works either way.
 
 ### Bringing the real game's data in again
 

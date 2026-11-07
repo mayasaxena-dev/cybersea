@@ -401,13 +401,13 @@ export function openWho(client, { fresh = false } = {}) {
     if (p) {
       const wasGm = client.role === 'gm';
       pick(client, p);
-      if (wasGm && /gm\.html$/.test(location.pathname)) { location.href = href('index.html', g); return; } // only the GM sees that page
+      if (wasGm && /\/gm(\.html)?$/.test(location.pathname)) { location.href = href('index.html', g); return; } // only the GM sees that page
       openWho(client, { fresh: !wasGm }); // from GM, read to fill in who's signed in
     }
     if (e.target.closest('[data-w="key"]')) askKey(client, client.role === 'crew' ? 'Enter the GM passphrase.' : '');
     if (e.target.closest('[data-w="gm-out"]')) {
       client.signOutGm();
-      if (/gm\.html$/.test(location.pathname)) location.href = href('index.html', g); // that page reads
+      if (/\/gm(\.html)?$/.test(location.pathname)) location.href = href('index.html', g); // that page reads
       else openWho(client); // reads, which confirms the sign-out and fills in the characters
     }
   });
