@@ -22,7 +22,7 @@ function setup({ gh, project, deployments, apiError, shaCode = 200 }) {
       const method = opts.method || 'get';
       calls.push(`${method} ${url}`);
       if (url.startsWith('https://api.github.com/')) return res(shaCode, shaCode === 200 ? SHA : { message: 'rate limited' });
-      const raw = url.match(/^https:\/\/raw\.githubusercontent\.com\/mayasaxena\/cybersea\/([^/]+)\/apps-script\/(.+)$/);
+      const raw = url.match(/^https:\/\/raw\.githubusercontent\.com\/mayasaxena-dev\/cybersea\/([^/]+)\/apps-script\/(.+)$/);
       if (raw) {
         const files = { 'files.txt': '# list\n' + Object.keys(gh).join('\n') + '\n', ...gh };
         return raw[2] in files ? res(200, files[raw[2]]) : res(404, '404: Not Found');

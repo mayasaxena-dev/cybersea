@@ -15,7 +15,7 @@
  * the web app runs as the owner and would fail without them.
  */
 
-const UPDATE_FROM = 'mayasaxena/cybersea@main';
+const UPDATE_FROM = 'mayasaxena-dev/cybersea@main';
 const SCRIPT_API = 'https://script.googleapis.com/v1/projects/';
 
 function updateScript() {
