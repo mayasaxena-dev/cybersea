@@ -1,0 +1,9 @@
+// Hosting for Cloudflare Workers branch previews (README, "Branch previews").
+// The site needs no build: the Worker only serves the repository's static files.
+// `previews` turns on the per-branch previews that `npx wrangler preview` uploads.
+{
+  "name": "cybersea",
+  "compatibility_date": "2026-11-01",
+  "assets": { "directory": "." },
+  "previews": {}
+}

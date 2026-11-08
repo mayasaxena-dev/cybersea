@@ -1,0 +1,16 @@
+# Files Cloudflare's branch previews don't serve: everything that isn't the site.
+.git
+.githooks
+.github
+.gitignore
+.nojekyll
+.assetsignore
+node_modules
+apps-script
+tests
+tools
+README.md
+package.json
+package-lock.json
+eslint.config.js
+wrangler.jsonc
