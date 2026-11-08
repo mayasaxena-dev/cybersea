@@ -17,7 +17,6 @@ import { pictureHTML, showPictures, shrink } from './pictures.js';
 import { esc, escTxt, ICON, armed, modal, closeModal, toast, deletedToast, debounce } from './core.js';
 import { hold } from './hold.js';
 import { shareButtonHTML, wireShare } from './share.js';
-import { joinRef } from './session-model.js';
 import { Stage } from './mapstage.js';
 import { mapKey as key, parseWhere, formatWhere, parseOn, parseDepth } from './where.js';
 
@@ -135,7 +134,6 @@ export function mountMap({ client, game, main, drawer, crew = false, embedded = 
     const where = p.hostLevel ? `${p.host.name} · ${p.hostLevel.name}` : p.host ? p.host.name : '';
     return `<section class="card loc${p.on ? '' : ' off'}${p.ship ? ' shipcard' : ''}${open ? ' open' : ''}" id="${open ? 'card' : 'loc'}-${p.i}"${open ? ` role="dialog" aria-label="${esc(p.name)}"` : ''}>
       <div class="shead"><h2>${escTxt(p.name)}</h2>${isGm() ? shownHTML(p) : ''}${edit(p.at, `Edit ${esc(p.name)}`)}${close}</div>
-      ${isGm() ? `<div class="prow">${shareButtonHTML({ type: 'place', ref: p.name, title: p.name })}${p.image ? shareButtonHTML({ type: 'picture', ref: joinRef('Map', p.name), title: `${p.name} (picture)` }, 'Share picture') : ''}${lv ? shareButtonHTML({ type: 'level', ref: joinRef(p.name, lv.name), title: `${p.name}: ${lv.name}` }, `Share ${lv.name}`) : ''}</div>` : ''}
       ${where ? `<div class="mwhere">${escTxt(where)}</div>` : ''}
       ${p.text.trim() ? `<div class="rich">${md(p.text)}</div>` : ''}
       ${imgHTML(p, 'rimg')}

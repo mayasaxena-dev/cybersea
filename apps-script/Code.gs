@@ -901,6 +901,7 @@ function show_(req) {
   if (!want || i < 0) return { ok: false, code: 'missing', error: 'No place called "' + req.location + '" in the Map tab.' };
   const j = lvl ? find(lvl) : -1;
   if (lvl && j < 0) return { ok: false, code: 'missing', error: 'No level called "' + req.level + '" in "' + req.location + '".' };
+  fitShownCheck_(sh, cols[6]);
   const put = (n, v) => {
     const cell = sh.getRange(n + 1, cols[6] + 1);
     cell.setNumberFormat('@');
@@ -912,6 +913,16 @@ function show_(req) {
   touched_(sh.getName());
   const t = mapTable_(sh, 'gm');
   return { ok: true, tab: sh.getName(), at: Date.now(), d: t.d, rows: t.rows };
+}
+
+// A Map tab whose Shown column was checked before "static" was a choice (by an older
+// setUpChecks) would refuse it: its checks are brought up to date first.
+function fitShownCheck_(sh, col) {
+  if (col < 0) return;
+  const v = sh.getRange(2, col + 1).getDataValidation();
+  if (!v || v.getCriteriaType() !== SpreadsheetApp.DataValidationCriteria.VALUE_IN_LIST) return;
+  const allowed = (v.getCriteriaValues()[0] || []).map(x => String(x).trim().toLowerCase());
+  if (allowed.indexOf('static') < 0) guard_(sh);
 }
 
 /*
@@ -937,6 +948,7 @@ function place_(req) {
     sh.setFrozenRows(1);
   }
   const cols = mapColsFor_(sh);
+  fitShownCheck_(sh, cols[6]);
   const all = mapRows_(sh, 'gm');
   const old = row ? all.find(r => r.n === row) : null;
   if (row && (!old || JSON.stringify(old.cells) !== JSON.stringify((req.was || []).map(String)))) {

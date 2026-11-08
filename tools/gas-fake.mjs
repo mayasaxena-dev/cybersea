@@ -301,6 +301,7 @@ export function createGas({ name = 'Test Game', tabs = {}, props = {}, now = () 
           return b;
         },
         ProtectionType: { SHEET: 'SHEET', RANGE: 'RANGE' },
+        DataValidationCriteria: { VALUE_IN_LIST: 'VALUE_IN_LIST', NUMBER_BETWEEN: 'NUMBER_BETWEEN', CUSTOM_FORMULA: 'CUSTOM_FORMULA' },
         newDataValidation: () => {
           const rule = { allowInvalid: true };
           const b = {
@@ -309,7 +310,15 @@ export function createGas({ name = 'Test Game', tabs = {}, props = {}, now = () 
             requireNumberBetween: (lo, hi) => { rule.between = [lo, hi]; return b; },
             setAllowInvalid: a => { rule.allowInvalid = !!a; return b; },
             setHelpText: t => { rule.help = t; return b; },
-            build: () => ({ ...rule }),
+            build: () => {
+              const r = { ...rule };
+              // As Sheets' DataValidation reads back: a list's values are the first criteria value.
+              Object.defineProperties(r, {
+                getCriteriaType: { value: () => (r.list ? 'VALUE_IN_LIST' : r.between ? 'NUMBER_BETWEEN' : r.formula ? 'CUSTOM_FORMULA' : null) },
+                getCriteriaValues: { value: () => (r.list ? [r.list.slice(), r.dropdown] : r.between ? r.between.slice() : r.formula ? [r.formula] : []) },
+              });
+              return r;
+            },
           };
           return b;
         },

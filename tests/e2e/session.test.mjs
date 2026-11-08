@@ -82,33 +82,24 @@ test('starting a session: the folder, the lit Session link, the prompt, one tap,
   await g.close();
 });
 
-test('the GM shares a place into the session folder: it’s on the crew’s map, and the GM opens it for everyone', async () => {
+test('a place the GM shows is on the Map app, which the GM opens for everyone', async () => {
   const g = await gm('map.html');
-  await g.waitForSelector('[data-share*="Scrap Town"]');
-  await shareTo(g, '[data-share*="\\"place\\""][data-share*="Scrap Town"]', 'Session 1: Rain');
+  await g.waitForSelector('.card.loc:has(h2:text-is("Scrap Town")) [data-to="on"]');
+  assert.equal(await g.$('.card.loc [data-share]'), null, 'no Share on a place: showing it shares it');
+  await g.click('.card.loc:has(h2:text-is("Scrap Town")) [data-to="on"]');
   assert.ok(await until(async () => (await h.tab(api, 'Map')).find(r => r[1] === 'Scrap Town' && !r[2])?.[6] === 'on'), 'Scrap Town is shown');
-  const share = await until(async () => rowsOf(await sessionRows(), 'share').find(r => r[3] === 'place: Scrap Town'));
-  assert.equal(share?.[2], 'Session 1: Rain');
 
   const p = await player();
   const s = await gm('session.html');
-  await s.waitForSelector('.file:has-text("Scrap Town")');
-  await p.waitForSelector('.file:has-text("Scrap Town")');
-  assert.equal(await p.$('[data-open]'), null);
-  await s.click('.file:has-text("Scrap Town")');
-  assert.equal(await s.textContent('[data-open]'), 'Show on the map');
-  await s.click('[data-open]');
-  // The Map app opens on the place, for everyone: the crew's map, even on the GM's screen.
-  for (const x of [s, p]) {
-    await x.waitForSelector('.desktop .win[data-win="map"] .mapcard .card.open:has-text("Scrap Town")');
-    assert.match(await x.textContent('.mapcard .card.open'), /A town of scrap\./);
-  }
-  assert.ok(rowsOf(await sessionRows(), 'focus').some(r => r[1] === 'Scrap Town'));
+  await s.waitForSelector('.dicons [data-app="map"]');
+  await s.$eval('.dicons [data-app="map"]', b => b.click());
+  // The Map app opens for everyone: the crew's map, even on the GM's screen.
+  for (const x of [s, p]) await x.waitForSelector('.desktop .win[data-win="map"] .mapapp :text("Scrap Town")');
   const shown = await s.textContent('.desktop .win[data-win="map"]');
   assert.doesNotMatch(shown, /Hidden Dock|Dark Vault|Sharks below|Someone is listening/, 'nothing the crew can’t see, even for the GM');
-  assert.equal(await s.$('.mapapp [data-share], .mapapp [data-edit], .mapapp [data-arrange]'), null, 'and none of the GM’s tools');
-  assert.equal(await p.$('.desktop [data-wclose]'), null, 'players can’t close it');
-  assert.equal(await p.$('.desktop [data-win] [data-drag]'), null, 'or move it');
+  assert.equal(!!(await s.$('.mapapp [data-share], .mapapp [data-edit], .mapapp [data-arrange], .mapapp [data-to]')), false, 'and none of the GM’s tools');
+  assert.equal(!!(await p.$('.desktop [data-win] [data-wclose]')), false, 'players can’t close it');
+  assert.equal(!!(await p.$('.desktop [data-win] [data-drag]')), false, 'or move it');
 
   // The GM moves it; everyone's follows.
   // Measured in the page in one go: a redraw can swap the element between a find and a measure.
@@ -119,7 +110,7 @@ test('the GM shares a place into the session folder: it’s on the crew’s map,
   await s.mouse.up();
   const box = async q => q.$eval('.desktop .win[data-win]', w => w.style.left);
   assert.match(await box(p), /%$/, 'windows sit where the GM put them');
-  const moved = await until(async () => { const x = rowsOf(await sessionRows(), 'window')[0]?.[2].split(' ')[0]; return x !== '6' && x; });
+  const moved = await until(async () => { const x = rowsOf(await sessionRows(), 'window')[0]?.[2].split(' ')[0]; return x !== '4' && x; });
   assert.ok(moved, 'the move is kept');
   assert.ok(await until(async () => (await box(p)) === `${moved}%`), 'the player’s window moved too');
 
@@ -223,11 +214,6 @@ test('the GM deletes a share from its folder only, or everywhere', async () => {
   assert.ok(await until(async () => !rowsOf(await sessionRows(), 'share').some(r => r[3] === 'lore: Place / Gull Harbor' || r[3].endsWith('/ Gull Harbor'))));
   assert.ok((await h.tab(api, 'Lore')).some(r => r[1] === 'Gull Harbor'), 'still on the Lore page');
 
-  await s.click('.file:has-text("Scrap Town")');
-  await s.click('.preview [data-del]');
-  await s.click('[role="dialog"] [data-all]');
-  assert.ok(await until(async () => !rowsOf(await sessionRows(), 'share').some(r => r[3] === 'place: Scrap Town')));
-  assert.ok(await until(async () => (await h.tab(api, 'Map')).find(r => r[1] === 'Scrap Town' && !r[2])?.[6] !== 'on'), 'off the crew’s map');
   await s.close();
 });
 

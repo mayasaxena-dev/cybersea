@@ -636,6 +636,17 @@ test('setUpChecks: the Map tab\'s Shown takes on or static, Depth a number', () 
   assert.deepEqual(map.getRange(2, 10).getDataValidation().between, [0, 5]);
 });
 
+test('show and place: a Shown column checked before static was a choice is brought up to date first', () => {
+  const { api, gas } = mapGame();
+  const map = gas.ss.getSheetByName('Map');
+  const old = gas.services.SpreadsheetApp.newDataValidation().requireValueInList(['on'], true).setAllowInvalid(false).build();
+  map.getRange(2, 7, map.getMaxRows() - 1, 1).setDataValidation(old);
+  const r = gm(api, { op: 'show', location: 'Haven', on: 'static' });
+  assert.equal(r.ok, true, r.error);
+  assert.deepEqual(map.getRange(2, 7).getDataValidation().list, ['on', 'static']);
+  assert.equal(r.rows.find(x => x[1] === 'Haven' && !x[2])[6], 'static');
+});
+
 test('image: sends a picture placed in a Map cell, only to someone who can see its row', () => {
   const { api, pics } = mapGame();
   const r = crew(api, { op: 'image', row: 2 });

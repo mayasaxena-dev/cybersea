@@ -176,23 +176,21 @@ session is running.
   Session Ends or Chapter's End on their sheet: it asks for any choices, one tap runs it, and
   **Undo** puts the sheet back. The GM's tab ticks off who has run it.
 - **Folders.** Each session is a folder; the GM can make others ("Vega Station/NPCs"). The
-  **Share** buttons on the GM page (NPCs, secrets, notes, clocks), the Map (places, levels,
-  region maps, pictures), Lore, Rules, each crew card, and the ⋯ menu on a character's sheet or
+  **Share** buttons on the GM page (NPCs, secrets, notes, clocks), the Map (region maps), Lore, Rules, each crew card, and the ⋯ menu on a character's sheet or
   the ship (next to the Notion embed link) file something into a folder.
-  Sharing a place puts it on the crew's map; a level shows on its own; a secret or note goes on
+  A place needs no Share: marking it Shown or Static on the Map is what shares it. A secret or note goes on
   the Lore page under Revealed; lore shared during a session is marked new until it ends; a
   clock follows the GM's; an NPC's ticked parts (tags, harm, notes) go on the **NPCs** page,
   where the crew keep their own notes on them. The GM types **Scene cards** on the Session page.
 - **Windows.** The GM opens a share for everyone, moves, resizes and closes it; every Session
   page shows the same windows. Players can add notes to a folder and edit or delete their own; a
-  note goes on the desktop only if the GM opens it. Deleting a lore, NPC, place or level share
+  note goes on the desktop only if the GM opens it. Deleting a lore or NPC share
   asks whether to take it out of the folder only or everywhere.
 - **Files and Map icons.** The desktop's **Files** and **Map** icons open those apps in windows
   of each viewer's own, which they can move, resize and close; nobody else's desktop follows.
 - **The Map app.** The GM's **Map** icon puts the map on everyone's desktop: the same interactive
-  map as the Map page, showing only what the crew see (even on the GM's screen). A shared place
-  *is* a place on that map: opening its share brings up the Map app on that place, or inside it
-  at a shared level, for everyone.
+  map as the Map page, showing only what the crew see (even on the GM's screen). The places on it are the ones the GM
+  has marked Shown or Static.
 - **Rolls.** The session's rolls sit beside the desktop; when it ends, its folder keeps them.
 
 It all lives in the **Session** and **NPCs** tabs, which the GM's first share makes (script
