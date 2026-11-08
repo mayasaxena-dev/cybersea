@@ -303,15 +303,16 @@ test('the GM shares a crew card from the card itself, or a sheet from its menu',
 test('the desktop’s Files and Map icons open apps of the viewer’s own', async () => {
   const p = await player();
   await p.waitForSelector('.dicons [data-app="files"]');
+  assert.ok(await p.evaluate(() => { const z = e => Number(getComputedStyle(e).zIndex) || 0; const i = document.querySelector('.dicons'); return [...document.querySelectorAll('.desktop .win')].every(w => z(w) > z(i)); }), 'windows sit over the icons');
   assert.equal(!!(await p.$('.dside .explorer')), false, 'no Files sidebar');
   await p.waitForSelector('[data-app-win="files"] .explorer, [data-app-win="files"].explorer');
   await p.click('[data-aclose="files"]');
   await p.waitForSelector('[data-app-win="files"]', { state: 'detached' });
-  await p.click('.dicons [data-app="files"]');
+  await p.$eval('.dicons [data-app="files"]', b => b.click()); // a shared window may sit over it
   await p.waitForSelector('[data-app-win="files"] .addr');
 
   const before = rowsOf(await sessionRows(), 'window').length;
-  await p.click('.dicons [data-app="map"]');
+  await p.$eval('.dicons [data-app="map"]', b => b.click()); // a shared window may sit over it
   await p.waitForSelector('[data-app-win="map"] .mapapp');
   assert.equal(rowsOf(await sessionRows(), 'window').length, before, 'nobody else’s desktop changes');
 
@@ -326,5 +327,10 @@ test('the desktop’s Files and Map icons open apps of the viewer’s own', asyn
   await p.reload();
   await p.waitForSelector('[data-app-win="map"] .mapapp');
   assert.notEqual(await p.$eval('[data-app-win="map"]', w => w.style.left), left, 'and stays where it was put');
+  // The page itself never scrolls; only what's in the windows does.
+  for (const size of [{ width: 1300, height: 700 }, { width: 390, height: 760 }]) {
+    await p.setViewportSize(size);
+    assert.ok(await until(() => p.evaluate(() => document.scrollingElement.scrollHeight <= innerHeight + 1)), `no page scroll at ${size.width}px`);
+  }
   await p.close();
 });

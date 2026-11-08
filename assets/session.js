@@ -275,7 +275,7 @@ function render() {
   if (cwd && !S.folders.includes(cwd)) cwd = '';
   document.title = `${S.current ? '● ' : ''}Session · ${client.game.name || 'Cybersea'}`;
   const live = S.current ? `<b>${escTxt(S.current.title)}</b> · running` : 'No session running';
-  if (!store.loaded && !store.missing) { main.innerHTML = '<div class="empty">Loading…</div>'; return; }
+  if (!store.loaded && !store.missing) { main.innerHTML = '<div class="empty"><span class="gload" data-text="Loading" aria-label="Loading">Loading</span></div>'; return; }
   main.innerHTML = `
     <div class="sbanner" role="banner"><span class="sdot${S.current ? ' on' : ''}" aria-hidden="true"></span><span class="gtext" data-text="SESSION · shared screen">SESSION · shared screen</span><span class="grow"></span><span>${live}</span></div>
     ${promptHTML()}
@@ -288,7 +288,7 @@ function render() {
   for (const w of S.windows) {
     const el = main.querySelector(`[data-win="${CSS.escape(w.id)}"]`);
     if (!el) continue;
-    Object.assign(el.style, { left: `${w.x}%`, top: `${w.y}%`, width: `${w.w}%`, height: `${w.h}%`, zIndex: String(w.z) });
+    Object.assign(el.style, { left: `${w.x}%`, top: `${w.y}%`, width: `${w.w}%`, height: `${w.h}%`, zIndex: String(1 + w.z) }); // over the icons
     if (seen && !seen.has(w.id)) el.classList.add('fresh');
   }
   // This viewer's apps sit above what the GM shares.
@@ -492,7 +492,7 @@ main.addEventListener('pointerdown', e => {
   e.preventDefault();
   const r = desk.getBoundingClientRect();
   drag = { id: app || w.id, app: !!app, mode: h.dataset.drag, x0: e.clientX, y0: e.clientY, box: { x: w.x, y: w.y, w: w.w, h: w.h }, r, win, now: null };
-  win.style.zIndex = String(app ? 1000 + appTop() : topZ(S));
+  win.style.zIndex = String(app ? 1000 + appTop() : 1 + topZ(S));
   win.setPointerCapture?.(e.pointerId);
 });
 main.addEventListener('pointermove', e => {

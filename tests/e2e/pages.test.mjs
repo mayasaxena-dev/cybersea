@@ -573,7 +573,8 @@ test('crew cards say they are loading until their sheet has come in, not 0s', as
     const p = await slow.page();
     await p.goto(`${slow.srv.site}/#join=${invite(slow.srv.apis[0].url)}`);
     await p.waitForSelector('.crewcard.loading[aria-busy="true"]');
-    assert.equal(await p.$('.crewcard.loading .cnt'), null, 'no experience count before the sheet comes in');
+    assert.equal(!!(await p.$('.crewcard.loading .cnt')), false, 'no experience count before the sheet comes in');
+    assert.equal(await p.$eval('.crewcard.loading .gload', e => getComputedStyle(e, '::before').animationName), 'g-tear', 'it glitches');
     await p.waitForSelector('.crewcard:not(.loading) .cnt', { timeout: 8000 });
     assert.ok(await until(async () => !(await p.$('.crewcard.loading')), 8000));
   } finally { await slow.close(); }

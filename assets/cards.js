@@ -50,7 +50,7 @@ function gmLinesHTML(st, sys) {
 const ready = (client, tab) => client.tab(tab).loaded || client.tab(tab).missing;
 // Until the sheet and the Rules and System tabs it's read by have come in, a card says so, not 0s.
 const loadingCard = (client, page, q, title) => `<a class="card crewcard loading" aria-busy="true" href="${esc(href(page, client.game, q))}">
-    <div class="shead"><h2>${escTxt(title)}</h2></div><div class="note">Loading…</div></a>`;
+    <div class="shead"><h2>${escTxt(title)}</h2></div><div class="gwrap"><span class="gload" data-text="Loading" aria-label="Loading">Loading</span></div></a>`;
 
 // share: the GM's Share button on the card (share.js).
 export function crewCardHTML(client, name, { gm = false, me = false, share = false } = {}) {
