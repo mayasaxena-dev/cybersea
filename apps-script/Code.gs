@@ -44,7 +44,9 @@ const DIGEST_SECONDS = 60;    // a tab's remembered digest; bounds how stale an 
 const KNOWN_KEY_SECONDS = 6 * 60 * 60; // a passphrase that worked skips the wrong-guess pause this long (CacheService's most)
 const MAX_IMAGE_BYTES = 20 * 1024 * 1024;
 // The Map tab's columns, found by their headers (see mapRows_).
-const MAP_HEADER = ['Region', 'Location', 'Level', 'Image', 'Text', 'GM notes', 'Shown'];
+const MAP_HEADER = ['Region', 'Location', 'Level', 'Image', 'Text', 'GM notes', 'Shown', 'On', 'Where', 'Depth'];
+// A Where cell: blank, all, 3 or 4 numbers (center across, down, width[, height] in percent), or 3+ x,y corners.
+const WHERE_RE = /^(all|-?\d+(\.\d+)?(\s+-?\d+(\.\d+)?){2,3}|-?\d+(\.\d+)?,-?\d+(\.\d+)?(\s+-?\d+(\.\d+)?,-?\d+(\.\d+)?){2,})?$/i;
 // The Images tab: every picture once, by name. An Image cell (Map, Lore, a character's) can name one (see imageTokens_).
 const IMAGES_TAB = 'Images';
 const IMAGES_HEADER = ['Name', 'Image'];
@@ -120,6 +122,7 @@ function op_(role, req) {
     case 'unroll': return withLock_(() => unroll_(req));
     case 'show': return role === 'gm' ? withLock_(() => show_(req)) : forbidden_();
     case 'place': return role === 'gm' ? withLock_(() => place_(req)) : forbidden_();
+    case 'where': return role === 'gm' ? withLock_(() => where_(req)) : forbidden_();
     case 'images': return role === 'gm' ? images_() : forbidden_();
     case 'picture': return withLock_(() => picture_(role, req));
     case 'selftest': return role === 'gm' ? withLock_(selftest_) : forbidden_();
@@ -821,14 +824,18 @@ function create_(role, req) {
 }
 
 /* ---------- the Map tab ----------
- * Region | Location | Level | Image | Text | GM notes | Shown, one row each for:
+ * Region | Location | Level | Image | Text | GM notes | Shown | On | Where | Depth, one row each for:
  *   a region's own map:   Region, no Location            (always shown)
  *   a place:              Region, Location, no Level     (shown to the crew once Shown is "on")
  *   a floor of a place:   Location, Level                (in order; shown with its place)
  * A place with no Level rows is one picture. Image is a picture placed in the cell (Insert > Image >
  * Insert image in cell), an =IMAGE("https://…") formula, or the name of a row of the Images tab.
- * GM notes are only sent to the GM. Rows go out as those 7 cells, the Image cell as imageTokens_
- * sends it.
+ * On, Where and Depth put a row on a picture (the site's map: see assets/where.js): On names the
+ * picture (blank: its region's map; "Place" or "Place / Level"), Where says where on it, and
+ * Depth how far it floats above it.
+ * GM notes are only sent to the GM. Shown "static" sends the crew a hidden place's picture and
+ * where it is, but nothing that names it, so it shows as static. Rows go out as those 10 cells,
+ * the Image cell as imageTokens_ sends it.
  */
 function mapCols_(header) {
   const hs = (header || []).map(h => String(h).trim().toLowerCase());
@@ -836,6 +843,7 @@ function mapCols_(header) {
 }
 
 const isOn_ = v => /^(on|yes|y|x|true|●|1)$/i.test(String(v || '').trim());
+const shownOf_ = v => (isOn_(v) ? 'on' : /^static$/i.test(String(v || '').trim()) ? 'static' : '');
 
 // The Map tab's rows that role may see: [{n: sheet row, cells}].
 function mapRows_(sh, role, named) {
@@ -850,15 +858,19 @@ function mapRows_(sh, role, named) {
     if (tokens) cells[3] = tokens[i];
     if (!cells.join('').trim()) return;
     const loc = cells[1].trim().toLowerCase();
-    cells[6] = isOn_(cells[6]) ? 'on' : '';
-    if (loc && !cells[2].trim() && !(loc in shown)) shown[loc] = cells[6] === 'on';
+    cells[6] = shownOf_(cells[6]);
+    if (loc && !cells[2].trim() && !(loc in shown)) shown[loc] = cells[6];
     if (loc && cells[2].trim() && cells[6] === 'on') someLevels[loc] = true;
     if (role !== 'gm') cells[5] = '';
     out.push({ n: i + 2, cells, loc, level: !!cells[2].trim() });
   });
+  if (role === 'gm') return out;
   // A place's levels all show with it, unless some of them are shown on their own (the GM shared
-  // just those floors): then only those do.
-  return role === 'gm' ? out : out.filter(r => !r.loc || (shown[r.loc] && !(r.level && someLevels[r.loc] && r.cells[6] !== 'on')));
+  // just those floors): then only those do. A static place reaches the crew as its picture and
+  // where it is, nothing more.
+  return out.filter(r => !r.loc || (shown[r.loc] === 'on' && !(r.level && someLevels[r.loc] && r.cells[6] !== 'on'))
+    || (shown[r.loc] === 'static' && !r.level && r.cells[8].trim()))
+    .map(r => (r.loc && shown[r.loc] === 'static' ? { n: r.n, loc: '', cells: [r.cells[0], '', '', r.cells[3], '', '', 'static', r.cells[7], r.cells[8], r.cells[9]] } : r));
 }
 
 // The GM also gets each row's place in the sheet (ns), to edit it by (see place_).
@@ -871,9 +883,9 @@ function mapTable_(sh, role, named) {
 }
 
 /*
- * show {location, level, on} (GM): puts a place on the crew's map, or takes it off. With level,
- * that one level of the place: once any level is on, the crew see only the levels that are (see
- * mapRows_), and turning a level on puts its place on too.
+ * show {location, level, on} (GM): puts a place on the crew's map (on: true), takes it off (false),
+ * or shows it as static ("static"). With level, that one level of the place: once any level is on,
+ * the crew see only the levels that are (see mapRows_), and turning a level on puts its place on too.
  */
 function show_(req) {
   const sh = findSheet_(SpreadsheetApp.getActiveSpreadsheet(), 'Map');
@@ -889,13 +901,14 @@ function show_(req) {
   if (!want || i < 0) return { ok: false, code: 'missing', error: 'No place called "' + req.location + '" in the Map tab.' };
   const j = lvl ? find(lvl) : -1;
   if (lvl && j < 0) return { ok: false, code: 'missing', error: 'No level called "' + req.level + '" in "' + req.location + '".' };
-  const put = n => {
+  const put = (n, v) => {
     const cell = sh.getRange(n + 1, cols[6] + 1);
     cell.setNumberFormat('@');
-    cell.setValues([[req.on ? 'on' : '']]);
+    cell.setValues([[v]]);
   };
-  if (j >= 0) put(j);
-  if (j < 0 || req.on) put(i);
+  if (j >= 0) put(j, req.on ? 'on' : '');
+  if (j < 0) put(i, req.on === 'static' ? 'static' : req.on ? 'on' : '');
+  else if (req.on) put(i, 'on');
   touched_(sh.getName());
   const t = mapTable_(sh, 'gm');
   return { ok: true, tab: sh.getName(), at: Date.now(), d: t.d, rows: t.rows };
@@ -905,8 +918,8 @@ function show_(req) {
  * place {row, was, cells, image} (GM): adds, changes or removes a row of the Map tab.
  *   row: the sheet row to change, or 0 to add one. was: its 7 cells as the GM last read them; if
  *     the row has changed in the sheet since, nothing is changed.
- *   cells: [Region, Location, Level, Text, GM notes]; leave it out to remove the row (a place's
- *     levels go with it).
+ *   cells: [Region, Location, Level, Text, GM notes, On, Where, Depth] (the last three may be left
+ *     off, to keep them); leave it out to remove the row (a place's levels go with it).
  *   image: left out keeps the picture; '' clears it; {name} names a row of the Images tab;
  *     {name, type, data (base64)} adds the picture to the Images tab under that name (with a
  *     number added if the name is taken) and names that row.
@@ -936,8 +949,10 @@ function place_(req) {
     gone.map(r => r.n).sort((a, b) => b - a).forEach(n => sh.deleteRow(n));
     return mapResult_(sh);
   }
-  const c = cells_(req.cells, 5).map(v => v.trim());
+  const c = cells_(req.cells, 8).map(v => v.trim());
+  const placing = req.cells.length > 5;
   if (!c[0] && !c[1]) return { ok: false, error: 'Give it a region or a place.' };
+  if (placing && !WHERE_RE.test(c[6])) return { ok: false, error: 'Where is “all”, three or four numbers, or three or more x,y corners.' };
   if (c[2] && !c[1]) return { ok: false, error: 'A level needs the place it’s in.' };
   let image = null; // the Image cell's new text, when it changes
   if (req.image === '') image = '';
@@ -960,6 +975,7 @@ function place_(req) {
   [0, 1, 2].forEach(i => { cellsAt[cols[i]] = [c[i], '@']; });
   cellsAt[cols[4]] = [c[3], '@'];
   cellsAt[cols[5]] = [c[4], '@'];
+  if (placing) [7, 8, 9].forEach(i => { cellsAt[cols[i]] = [c[i - 2], '@']; });
   if (image != null) cellsAt[cols[3]] = [image, 'General']; // a name, or =IMAGE() typed in later, as Sheets reads it
   const order = Object.keys(cellsAt).map(Number).sort((a, b) => a - b);
   for (let i = 0; i < order.length;) {
@@ -979,6 +995,26 @@ function place_(req) {
       cell.setValues([[safe_(c[1])]]);
     });
   }
+  return mapResult_(sh);
+}
+
+/*
+ * where {row, was, where, depth} (GM): moves a row on its picture: sets its Where (and Depth, when
+ * given). row and was are as for place.
+ */
+function where_(req) {
+  const sh = findSheet_(SpreadsheetApp.getActiveSpreadsheet(), 'Map');
+  if (!sh) return { ok: false, code: 'missing', error: 'No Map tab.' };
+  const old = mapRows_(sh, 'gm').find(r => r.n === Number(req.row));
+  if (!old || JSON.stringify(old.cells) !== JSON.stringify((req.was || []).map(String))) {
+    return { ok: false, code: 'conflict', error: 'That row of the Map tab has changed since this page read it. Look again and redo your change.' };
+  }
+  const where = String(req.where == null ? '' : req.where).trim();
+  if (!WHERE_RE.test(where)) return { ok: false, error: 'Where is “all”, three or four numbers, or three or more x,y corners.' };
+  const cols = mapColsFor_(sh);
+  const put = (col, v) => { const cell = sh.getRange(old.n, col + 1); cell.setNumberFormat('@'); cell.setValues([[v]]); };
+  put(cols[8], where);
+  if (req.depth != null) put(cols[9], String(req.depth).trim());
   return mapResult_(sh);
 }
 
@@ -1285,6 +1321,15 @@ function guard_(sh) {
   const rows = Math.max(sh.getMaxRows() - 1, 1);
   const list = (values, strict, help) => SpreadsheetApp.newDataValidation().requireValueInList(values, true)
     .setAllowInvalid(!strict).setHelpText(help).build();
+  if (kind === 'map') {
+    const cols = mapCols_(sh.getRange(1, 1, 1, sh.getMaxColumns()).getDisplayValues()[0]);
+    if (cols[6] >= 0) sh.getRange(2, cols[6] + 1, rows, 1).setDataValidation(list(['on', 'static'], true, 'on: the crew see it. static: they see static where it is. Blank: hidden.'));
+    if (cols[9] >= 0) {
+      sh.getRange(2, cols[9] + 1, rows, 1).setDataValidation(SpreadsheetApp.newDataValidation().requireNumberBetween(0, 5)
+        .setAllowInvalid(false).setHelpText('How far it floats above the map: 0 (blank) to 5.').build());
+    }
+    return cols[6] >= 0 || cols[9] >= 0;
+  }
   if (kind === 'rules' || kind === 'system') {
     protectTab_(sh, kind === 'rules' ? 'the game’s rules; the site reads them' : 'the game’s mechanics; the site reads them');
     const head = sh.getRange(1, 1, 1, RULES_HEADER.length).getDisplayValues()[0].map(h => String(h).trim().toLowerCase());

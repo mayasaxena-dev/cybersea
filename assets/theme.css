@@ -472,8 +472,7 @@ a.pbtn{display:inline-block;text-decoration:none}
 .levels .cats{margin:0}
 details.orig{margin-top:8px;padding-top:6px;border-top:1px dashed var(--line);color:var(--muted);font-size:.92em}
 details.orig summary{cursor:pointer;font:600 11px/1.4 "Chakra Petch",sans-serif;letter-spacing:.12em;text-transform:uppercase}
-.loc .mapon{margin-left:auto}
-.loc .mapon.on{color:var(--bg);background:var(--cyan);border-color:var(--cyan)}
+.loc .mapshow{margin-left:auto}
 /* the GM's map editor */
 .field[hidden]{display:none}
 .panel .rimg img{max-height:260px;object-fit:contain}
@@ -652,3 +651,73 @@ svg.defs{position:absolute;width:0;height:0;overflow:hidden}
   .sbanner .gtext::before,.sbanner .gtext::after,.desktop .win.fresh{animation:none}
 }
 @media (max-width:600px){.sbanner{font-size:11px;letter-spacing:.1em}.sbanner .gtext{font-size:12px}}
+
+/* the interactive map (mapstage.js): a picture to pan and zoom, with places on it that open their
+   cards. Floating places (Depth) bob and drift against the pointer and the camera; static is a
+   hidden place the crew only glimpse; the ship is a marker that glides when the GM moves it. */
+.mstage{display:flex;justify-content:center}
+.mvp{position:relative;overflow:hidden;width:100%;max-width:100%;border:1px solid var(--line);border-radius:4px;background:#000;touch-action:pan-y;user-select:none;-webkit-user-select:none}
+.mvp.zoomed,.mvp.arrange{touch-action:none}
+.mworld{position:relative;transform-origin:0 0;--mx:0;--my:0;--cx:0;--cy:0}
+.mbg{display:block}
+.mbg img{display:block;width:100%;height:auto;pointer-events:none;-webkit-user-drag:none}
+.mbg img[data-row]:not([src]){min-height:240px;visibility:hidden}
+.mlayers,.mareas{position:absolute;inset:0;width:100%;height:100%;pointer-events:none}
+.mareas{overflow:visible;z-index:1}
+.mlay{position:absolute;transform:translate(-50%,-50%);transition:left 1.2s cubic-bezier(.4,0,.2,1),top 1.2s cubic-bezier(.4,0,.2,1),width .3s,filter .2s,opacity .3s}
+.mlay.dragging{transition:filter .2s}
+.mlay.full{inset:0;transform:none;width:auto}
+.mlay .mpic{display:block}
+.mlay img{display:block;width:100%;height:auto;pointer-events:none;-webkit-user-drag:none}
+.mlay .mpic.fill,.mlay .mpic.fill img{width:100%;height:100%;object-fit:contain}
+.mlay img[data-row]:not([src]){visibility:hidden;min-height:20px}
+.mlay.hover,.mlay.cur{filter:drop-shadow(0 0 2px var(--cyan)) drop-shadow(0 0 10px var(--cyan)) brightness(1.2)}
+.mlay.hid{opacity:.38}
+.mlay.dim{opacity:.25}
+.mlay.static,.mlay.gmstatic{filter:grayscale(1) brightness(.55) contrast(1.4) blur(.7px)}
+.mlay.static{animation:mstatic 3.4s steps(1) infinite}
+.mlay.static.hover{filter:grayscale(1) brightness(.8) blur(.4px)}
+@keyframes mstatic{0%,100%{opacity:.5}23%{opacity:.2}25%{opacity:.6}61%{opacity:.32}63%{opacity:.55}88%{opacity:.15}}
+/* Depth: drift against the pointer (mx, my) and the camera (cx, cy), and bob */
+.mdrift{transform:translate(calc((var(--mx) * -5px - var(--cx) * 14px) * var(--d,0)),calc((var(--my) * -4px - var(--cy) * 14px) * var(--d,0)));transition:transform .8s cubic-bezier(.2,.7,.3,1)}
+.mbob{position:relative}
+.mlay.floats .mbob,.mlay.ship .mbob{animation:mbob calc(5.5s + var(--k,0) * .7s) ease-in-out infinite alternate;animation-delay:calc(var(--k,0) * -1.3s)}
+@keyframes mbob{from{transform:translateY(calc(max(var(--d,0),1) * 1.5px))}to{transform:translateY(calc(max(var(--d,0),1) * -1.5px))}}
+.mlay.ship .mpic{border-radius:50%;overflow:hidden;border:2px solid var(--cyan);box-shadow:0 0 calc(var(--glow) + 4px) color-mix(in srgb,var(--cyan) 70%,transparent);background:#000}
+.mlay.ship .mpic img{aspect-ratio:1;object-fit:cover}
+.mlabel{position:absolute;left:50%;top:100%;transform:translate(-50%,4px);white-space:nowrap;padding:2px 6px;border-radius:999px;background:color-mix(in srgb,#000 70%,transparent);color:#fff;font:700 10px/1.2 "Chakra Petch",sans-serif;letter-spacing:.1em;text-transform:uppercase}
+.mlay.sel{outline:1px dashed var(--cyan);outline-offset:2px}
+.mhandle{position:absolute;right:-8px;bottom:-8px;width:16px;height:16px;border-radius:3px;background:var(--cyan);border:2px solid #000;cursor:nwse-resize;pointer-events:auto}
+.mareas .ma{fill:transparent;stroke:transparent;stroke-width:1.5;vector-effect:non-scaling-stroke}
+.mareas .ma.lvl{stroke:color-mix(in srgb,var(--cyan) 40%,transparent);stroke-dasharray:4 3}
+.mareas .ma.lvl.now{stroke:var(--pink);fill:color-mix(in srgb,var(--pink) 14%,transparent)}
+.mvp.arrange .mareas .ma{stroke:color-mix(in srgb,var(--cyan) 55%,transparent)}
+.mareas .ma.hid{stroke:color-mix(in srgb,var(--pink) 60%,transparent);stroke-dasharray:2 2}
+.mareas .ma.hover,.mareas .ma.cur,.mareas .ma.sel{stroke:var(--cyan);stroke-width:2;fill:color-mix(in srgb,var(--cyan) 18%,transparent)}
+.mareas .mdraft{fill:color-mix(in srgb,var(--amber) 18%,transparent);stroke:var(--amber);stroke-width:2;vector-effect:non-scaling-stroke}
+.mzoom{position:absolute;left:8px;bottom:8px;z-index:2;display:grid;gap:4px} /* clear of a card open beside the map */
+.mzoom .ic{background:color-mix(in srgb,var(--panel) 85%,transparent);font:600 16px/1 system-ui,sans-serif}
+.mchips{display:flex;flex-wrap:wrap;gap:6px;margin-top:10px}
+.mchips .chip.off{color:var(--muted);border-style:dashed}
+.mwhere{margin-top:2px;color:var(--muted);font:600 11px/1.3 "Chakra Petch",sans-serif;letter-spacing:.12em;text-transform:uppercase}
+.minside{margin:0;font:700 16px/1.2 "Chakra Petch",sans-serif;letter-spacing:.08em;text-transform:uppercase}
+.mfields{align-items:flex-start}
+.mfields .field{flex:1 1 140px}
+/* a card opened from the map, beside it (under it, on a phone) */
+#mapcard .card.open{position:fixed;z-index:20;top:calc(env(safe-area-inset-top,0px) + 76px);right:max(16px,env(safe-area-inset-right,0px));width:min(380px,calc(100vw - 32px));max-height:calc(100dvh - 96px);overflow:auto;margin:0;box-shadow:var(--shadow);animation:mfade .2s ease}
+#mapcard .card.open .rimg img{max-height:220px;object-fit:contain}
+@media (max-width:700px){#mapcard .card.open{top:auto;bottom:max(12px,env(safe-area-inset-bottom,0px));left:max(12px,env(safe-area-inset-left,0px));right:max(12px,env(safe-area-inset-right,0px));width:auto;max-height:55dvh}}
+/* the levels of a place, tilted into a stack to pick from */
+.mstack{position:relative;height:min(560px,120vw);perspective:1400px;overflow:hidden;border:1px solid var(--line);border-radius:4px;background:#000}
+.mplane{position:absolute;left:50%;top:60%;width:min(400px,66vw);aspect-ratio:1.15;padding:0;overflow:visible;border:1px solid color-mix(in srgb,var(--cyan) 45%,transparent);background:rgba(0,0,0,.55);cursor:pointer;
+  transform:translate(-50%,-50%) rotateX(58deg) rotateZ(-38deg) translateZ(calc(var(--i) * 95px));transition:transform .3s,border-color .3s,filter .3s}
+.mplane:hover,.mplane:focus-visible{transform:translate(-50%,-50%) rotateX(58deg) rotateZ(-38deg) translateZ(calc(var(--i) * 95px + 26px));border-color:var(--pink);filter:brightness(1.3)}
+.mplanepic,.mplanepic img{display:block;width:100%;height:100%;object-fit:cover;object-position:50% 100%}
+.mplane span{position:absolute;left:-8px;top:-8px;padding:4px 8px;background:var(--panel);border:1px solid var(--line);border-radius:999px;color:var(--text);font:700 11px/1 "Chakra Petch",sans-serif;letter-spacing:.1em;text-transform:uppercase}
+.fade{animation:mfade .4s ease}
+.mstage.goup .mworld{animation:mgoup .4s ease}
+.mstage.godown .mworld{animation:mgodown .4s ease}
+@keyframes mfade{from{opacity:0}}
+@keyframes mgoup{from{opacity:0;transform:translateY(8%)}}
+@keyframes mgodown{from{opacity:0;transform:translateY(-8%)}}
+@media (prefers-reduced-motion: reduce){.mlay,.mdrift{transition:none}.mlay.static,.mbob,.fade,.mstage .mworld,#mapcard .card.open{animation:none!important}.mdrift{transform:none}}

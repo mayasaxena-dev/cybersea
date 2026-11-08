@@ -270,8 +270,8 @@ test("map page: from the Map tab; crew see the region's map and only the places 
   assert.deepEqual(names.sort(), ['Hidden Dock', 'Packet Reef', 'Scrap Town'], 'the GM sees every place');
   assert.match(await g.textContent('main'), /Sharks below/);
   const town = g.locator('.loc', { hasText: 'Scrap Town' });
-  assert.equal(await town.locator('[data-place]').getAttribute('aria-pressed'), 'false');
-  await town.locator('[data-place]').click();
+  assert.equal(await town.locator('[data-to="on"]').getAttribute('aria-pressed'), 'false');
+  await town.locator('[data-to="on"]').click();
   assert.ok(await until(async () => place(await h.tab(g1, 'Map'), 'Scrap Town')?.[6] === 'on'), 'the GM\'s choice is saved in the Shown column');
   await g.click('[data-show="on"]');
   assert.deepEqual((await g.$$eval('.loc h2', hs => hs.map(x => x.textContent))).sort(), ['Packet Reef', 'Scrap Town']);
@@ -290,7 +290,7 @@ test("map page: from the Map tab; crew see the region's map and only the places 
   assert.deepEqual(await settled(() => p.$$eval('.loc h2', hs => hs.map(x => x.textContent)), ['Scrap Town']), ['Scrap Town'], 'a level\'s text finds its place');
 
   // Off again: gone for the crew.
-  await g.locator('.loc', { hasText: 'Scrap Town' }).locator('[data-place]').click();
+  await g.locator('.loc', { hasText: 'Scrap Town' }).locator('[data-to=""]').click();
   assert.ok(await until(async () => place(await h.tab(g1, 'Map'), 'Scrap Town')?.[6] === ''));
   await p.fill('#q', '');
   assert.ok(await until(async () => !(await p.$('.loc:has-text("Scrap Town")'))), 'the crew page drops it');
@@ -351,7 +351,7 @@ test('map page: a kept picture over an hour old shows at once, then the script i
   assert.match(asks[0], /"have":"stale"/);
   release();
   assert.ok(await until(() => p.$eval('.worldmap img', i => i.complete && i.naturalWidth === 64)), 'the new picture swaps in');
-  assert.equal(await p.$eval('.worldmap img', i => i.closest('a')?.href === i.src), true, 'its full-size link follows');
+  assert.equal(await p.$eval('.worldmap img', i => !i.closest('a')), true, 'a map to explore, not a link to the picture');
 });
 
 test('polls that change nothing leave the page alone: focus in the search box and the nav stays', async () => {

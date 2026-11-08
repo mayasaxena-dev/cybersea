@@ -209,13 +209,15 @@ and update the script (below). A script older than version 4 ignores them.
 
 The **Map** page, open to everyone, shows the **Map** tab. Its columns (found by their headers):
 
-| Region | Location | Level | Image | Text | GM notes | Shown |
-|---|---|---|---|---|---|---|
-| Vega Server | | | *(picture)* | The server's sea. | | |
-| Vega Server | Hacker's Haven | | Hackers Haven | A city of scrap. | Who really runs it. | on |
-| | Hacker's Haven | Level 1 | *(picture)* | The docks. | | |
-| | Hacker's Haven | Level 2 | *(picture)* | The market. | | |
-| Vega Server | DeepPort | | *(picture)* | A pool of links. | | |
+| Region | Location | Level | Image | Text | GM notes | Shown | On | Where | Depth |
+|---|---|---|---|---|---|---|---|---|---|
+| Vega Server | | | *(picture)* | The server's sea. | | | | | |
+| Vega Server | Hacker's Haven | | Hackers Haven | A city of scrap. | Who really runs it. | on | | 74.6 71.2 34.2 | 1 |
+| | Hacker's Haven | Level 1 | *(picture)* | The docks. | | | | 43.5 22 77 6 | |
+| | Hacker's Haven | Level 2 | *(picture)* | The market. | | | | 43.5 16.7 77 4.6 | |
+| | Phreakerz | | | A hackers' den. | | on | Hacker's Haven / Level 1 | 59.2 45.1 13.3 7.1 | |
+| Vega Server | DeepPort | | *(picture)* | A pool of links. | | static | | 42 67.7 26.5 | |
+| Vega Server | The Gull | | | Our ship. | | on | | 50 60 6 | |
 
 - A row with a **Region** and no **Location** is that region's own map. It always shows.
 - A row with a **Location** and no **Level** is a place, listed under its region.
@@ -231,6 +233,34 @@ The **Map** page, open to everyone, shows the **Map** tab. Its columns (found by
 - **Shown**: the GM chooses which places the crew see, with the **On the map** / **Hidden**
   button on each place (only the GM sees it), which writes `on` here; or type it. Every place
   starts hidden. The script never sends the crew a hidden place, its levels or its pictures.
+  `static` (the **Static** button) shows the crew a flickering, greyed-out glimpse of the
+  place's picture where it sits on the map, with no name or text.
+
+**The map you can explore.** When a region's map has a picture, the places with a **Where** sit
+on it, and clicking one opens its card. Places with no Where are cards under the map, as before.
+Scroll the page as usual; pinch, ctrl-scroll or the **+** button zooms, and dragging pans.
+
+- **Where** says where a row sits on its picture, in percent of that picture, measured from the
+  top left:
+  - `74.6 71.2 34.2`: the row's own picture, centered 74.6% across and 71.2% down, 34.2% as wide
+    as the map (its height follows). Clicks only count on its painted pixels, so pictures with
+    transparent backgrounds can overlap.
+  - `all`: the row's picture is the same size as the map, transparent around the place
+    (exported from your drawing program at the full canvas size). No numbers needed.
+  - `59.2 45.1 13.3 7.1`: an area, with a center, width and height. Use it for things painted
+    into the picture itself, like a shop on a floor plan.
+  - `36,60 47,60 48,70 37,70`: an area of any shape, by its corners.
+  On the site, the GM's **Arrange** button lets you drag places about, resize a picture by its
+  corner, and drag on an empty spot to mark out a new place there. The site writes Where for you.
+- **On** puts a place on another picture: blank is its region's map, `Hacker's Haven` is that
+  place's own picture, and `Hacker's Haven / Level 1` is that level's. A place with levels or
+  places on it gets **Go inside** on its card. The camera flies in, and the levels are buttons, a
+  **Stack** of tilted floors, and, when a level row has a Where, its band on the picture (the
+  side view of a ship, say) that goes to that level when clicked.
+- **Depth** (0 to 5) makes a place float: it bobs gently and drifts against the pointer and the
+  camera, more the higher it is.
+- **The ship**: a place called `Ship`, or by the Ship tab's name, is a round marker with the
+  ship's picture (unless the row has its own). Move it and it glides there on every screen.
 
 The GM can also add, change and remove regions' maps, places and levels on the Map page: the pencil
 on each one, **+ Place**, **+ Region map**, and **+ Level** on a place. A picture is picked from the
@@ -270,7 +300,8 @@ tab name in the `info | Name` row. A crew member's picture (on the ship's crew t
 **Image** cell of their `crew` row on the Ship tab, set the same way.
 
 The Map tab and pictures need script version 5; the Images tab and editing the map on the site,
-version 8; character pictures, version 10; crew members' pictures, version 11.
+version 8; character pictures, version 10; crew members' pictures, version 11; On, Where, Depth and
+static places, version 12. Run **setUpChecks** after adding the three headers, so Shown takes `static`.
 Deploying it asks you to authorize again, for "connect to an external service": that's how the
 script reads a picture out of its cell.
 

@@ -306,6 +306,7 @@ export function createGas({ name = 'Test Game', tabs = {}, props = {}, now = () 
           const b = {
             requireValueInList: (list, dropdown = true) => { Object.assign(rule, { list: [...list], dropdown }); return b; },
             requireFormulaSatisfied: f => { rule.formula = f; return b; },
+            requireNumberBetween: (lo, hi) => { rule.between = [lo, hi]; return b; },
             setAllowInvalid: a => { rule.allowInvalid = !!a; return b; },
             setHelpText: t => { rule.help = t; return b; },
             build: () => ({ ...rule }),

@@ -20,16 +20,21 @@ export const IMAGES = {
 export const imagesRows = () => [['Name', 'Image'], ['Dock picture', pic(IMAGES.dock)], ['Bo Brine', pic(IMAGES.level1)]];
 
 export const RULES_HEADER = ['Kind', 'Group', 'Name', 'Text', 'Meta', 'Vis', 'Override name', 'Override text', 'Override meta'];
-export const MAP_HEADER = ['Region', 'Location', 'Level', 'Image', 'Text', 'GM notes', 'Shown'];
+export const MAP_HEADER = ['Region', 'Location', 'Level', 'Image', 'Text', 'GM notes', 'Shown', 'On', 'Where', 'Depth'];
 
-// The world: a region's map, places (one hidden, one with levels) and the GM's notes.
+// The world: a region's map with places on it (one floating, one static, the ship), places that
+// are only cards (one hidden, one with levels) and the GM's notes.
 export const mapRows = () => [
-  ['The Test Server', '', '', pic(IMAGES.map), 'Everything, all at once.', 'The map is upside down.', ''],
-  ['The Test Server', 'Packet Reef', '', pic(IMAGES.map), 'A reef of lost packets.', 'Sharks below.', 'on'],
-  ['The Test Server', 'Scrap Town', '', '', 'A town of scrap.', '', ''],
-  ['', 'Scrap Town', 'Level 1', pic(IMAGES.level1), 'The docks.', '', ''],
-  ['', 'Scrap Town', 'Level 2', pic(IMAGES.level2), 'The market.', '', ''],
-  ['Far Away', 'Hidden Dock', '', 'Dock picture', 'Only the GM knows.', '', ''],
+  ['The Test Server', '', '', pic(IMAGES.map), 'Everything, all at once.', 'The map is upside down.', '', '', '', ''],
+  ['The Test Server', 'Packet Reef', '', pic(IMAGES.map), 'A reef of lost packets.', 'Sharks below.', 'on', '', '', ''],
+  ['The Test Server', 'Scrap Town', '', '', 'A town of scrap.', '', '', '', '', ''],
+  ['', 'Scrap Town', 'Level 1', pic(IMAGES.level1), 'The docks.', '', '', '', '', ''],
+  ['', 'Scrap Town', 'Level 2', pic(IMAGES.level2), 'The market.', '', '', '', '', ''],
+  ['The Test Server', 'Bit Lagoon', '', pic(IMAGES.dock), 'Warm, shallow and full of bits.', '', 'on', '', '28 62 24', '2'],
+  ['The Test Server', 'Old Relay', '', pic(IMAGES.level1), 'A tower that still hums.', 'Someone is listening.', 'on', '', '72 34 14', ''],
+  ['The Test Server', 'Dark Vault', '', pic(IMAGES.dock), 'Locked tight.', 'The crew have not found it yet.', 'static', '', '84 78 12', ''],
+  ['The Test Server', 'The Gull', '', pic(IMAGES.level2), 'Our ship.', '', 'on', '', '50 48 8', ''],
+  ['Far Away', 'Hidden Dock', '', 'Dock picture', 'Only the GM knows.', '', '', '', '', ''],
 ];
 export const HEADER = ['Kind', 'Name', 'Value', 'Notes'];
 
