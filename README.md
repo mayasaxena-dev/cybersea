@@ -554,11 +554,13 @@ invite link keeps working across tries, and nothing done to it reaches the real 
 
 ### Trying a branch on it
 
-- **Script changes** (`apps-script/`): in the staging script's properties, set `UPDATE_FROM` to
-  `mayasaxena-dev/cybersea@your-branch`, then pick **Cybersea → Update the script** in the staging
-  sheet. Pick it again after each push to the branch. When the branch is merged, set
-  `UPDATE_FROM` back to `mayasaxena-dev/cybersea@main` (or delete it) and update the staging script
-  once more, then update the real game's script from its menu.
+- **Script changes** (`apps-script/`): with [Deploying from GitHub](#deploying-from-github) set
+  up, each push to the branch deploys it to staging, and merging it deploys `main` to the real
+  game and puts staging back on `main`. Without it, set `UPDATE_FROM` in the staging script's
+  properties to `mayasaxena-dev/cybersea@your-branch` and pick **Cybersea → Update the script**
+  in the staging sheet after each push. When the branch is merged, set `UPDATE_FROM` back to
+  `mayasaxena-dev/cybersea@main` (or delete it), update the staging script once more, then
+  update the real game's script from its menu.
 - **Site changes**: open the branch's preview (see [Branch previews](#branch-previews)) with the
   staging invite's address swapped for the preview's: keep everything from `#join=` on. Or check
   out the branch, run `npm run dev`, and use `http://localhost:8080/` the same way. Invite links
@@ -591,8 +593,8 @@ the usual site.
 
 Notes:
 
-- Previews show only the site. A branch that changes `apps-script/` also needs the staging
-  script updated from it, as above.
+- Previews show only the site. A branch's script changes reach staging as above, so a preview
+  opened on the staging invite runs the branch's site against the branch's script.
 - Preview addresses are public, like the repository: they hold no game. The game comes from
   the invite, so share staging invites only with whoever is testing.
 - Cloudflare drops `.html` from page addresses (`/sheet.html` opens as `/sheet`). The site
