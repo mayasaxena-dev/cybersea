@@ -455,6 +455,70 @@ To update from somewhere other than this repository's `main` (a fork, say), set 
 property `UPDATE_FROM` to `owner/repo` or `owner/repo@branch`. `apps-script/files.txt` lists the
 files it brings in.
 
+### Deploying from GitHub
+
+The repository's owner can skip the menu for their own games: a GitHub Actions workflow
+(`.github/workflows/deploy-script.yml`) deploys `apps-script/` whenever it changes.
+
+- A push to `main` deploys to the **production** game, then to **staging**, so staging follows
+  `main` again after a merge.
+- A push to any other branch deploys to **staging**, so the staging game runs that branch
+  without touching `UPDATE_FROM`. Two branches pushed close together take turns; the last push
+  wins.
+- **Actions → Deploy the script → Run workflow** deploys any branch to either game (production
+  only from `main`), for instance to put staging back on `main`.
+
+It works like the menu: it keeps files of your own, saves a version and updates the existing web
+app deployment, so the URL and invite links stay the same. If `appsscript.json` asks for new
+permissions, it saves the code but doesn't deploy it, and the run fails saying so. Open the
+game's Apps Script editor, pick **onOpen** in the function list, click **Run** and allow what it
+asks, then use **Run workflow** with **New permissions are allowed** ticked.
+
+The menu keeps working alongside it, for other GMs' games and as a fallback.
+
+#### Setting it up (once)
+
+This needs the game set up for [Updating from the menu](#updating-from-the-menu) first (a Google
+Cloud project of your own with the Apps Script API on, published **In production**). Everything
+is done in a browser, signed in to the Google account that owns the games' scripts.
+
+1. **Make an OAuth client.** In [console.cloud.google.com](https://console.cloud.google.com),
+   in that project, open **Google Auth Platform → Clients → Create client**. Pick **Web
+   application**, add `https://developers.google.com/oauthplayground` under **Authorized
+   redirect URIs**, and click **Create**. Copy the **Client ID** and **Client secret**.
+2. **Get a refresh token.** Open the
+   [OAuth 2.0 Playground](https://developers.google.com/oauthplayground). Click the gear, tick
+   **Use your own OAuth credentials** and paste the client ID and secret. In **Step 1**, type
+   `https://www.googleapis.com/auth/script.projects https://www.googleapis.com/auth/script.deployments`
+   into the box at the bottom, click **Authorize APIs** and allow it (Google warns that it
+   "hasn't verified this app": click **Advanced → Go to (app name)**). In **Step 2**, click
+   **Exchange authorization code for tokens** and copy the **Refresh token**.
+3. **Find the script ids.** In each game's Apps Script editor, open **Project Settings** and
+   copy the **Script ID** under **IDs**: one for the real game, one for staging.
+4. **Add the secrets on GitHub.** In the repository's **Settings → Secrets and variables →
+   Actions**, add three repository secrets: `GOOGLE_CLIENT_ID`, `GOOGLE_CLIENT_SECRET` and
+   `GOOGLE_REFRESH_TOKEN`.
+5. **Add the two games.** In **Settings → Environments**, click **New environment**:
+   - `production`: under **Deployment branches and tags**, pick **Selected branches and tags**
+     and add `main`. Add an environment secret `SCRIPT_ID` with the real game's script id.
+   - `staging`: add an environment secret `SCRIPT_ID` with the staging game's script id.
+6. Check it from **Actions → Deploy the script → Run workflow** (target `staging`). The run
+   says which version it deployed, or that the script was already up to date.
+
+Notes:
+
+- The ids and tokens live only in GitHub's secrets, which GitHub hides in the logs. Never put
+  them in the repository: it's public.
+- A run without a `SCRIPT_ID` for its environment deploys nothing and passes, so a fork, or a
+  setup without a staging game, stays green.
+- The refresh token can edit every Apps Script project its account owns, and anyone who can push
+  a branch here could make a workflow print it. Keep push access to people you trust. To revoke
+  it, remove the app at [myaccount.google.com/permissions](https://myaccount.google.com/permissions)
+  and make a new one.
+- The token stops working if it's revoked, if the Google Cloud app goes back to testing, or if
+  it's unused for six months. The run then says `invalid_grant`: repeat step 2 and update
+  `GOOGLE_REFRESH_TOKEN`.
+
 ## Handing the game to someone else (e.g. the GM)
 
 1. They open the Google Sheet and choose **File → Make a copy**. The script is copied with it.
