@@ -105,8 +105,8 @@ test('the GM shares a place into the session folder: it’s on the crew’s map,
   assert.equal(await p.$('.desktop [data-drag]'), null, 'or move it');
 
   // The GM moves it; everyone's follows.
-  const bar = await s.$('.desktop .win .wbar');
-  const b = await bar.boundingBox();
+  // Measured in the page in one go: a redraw can swap the element between a find and a measure.
+  const b = await until(() => s.evaluate(() => { const r = document.querySelector('.desktop .win .wbar')?.getBoundingClientRect(); return r?.width ? { x: r.x, y: r.y } : null; }));
   await s.mouse.move(b.x + 40, b.y + 8);
   await s.mouse.down();
   await s.mouse.move(b.x + 140, b.y + 108, { steps: 5 });
