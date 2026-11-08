@@ -4,6 +4,8 @@ import { bootstrap } from './games.js';
 import { GameClient } from './api.js';
 import { md } from './markup.js';
 import { pictureHTML, showPictures } from './pictures.js';
+import { shareButtonHTML, wireShare } from './share.js';
+import { parseSession, isNewLore, SESSION_TAB, joinRef } from './session-model.js';
 import { esc, escTxt, ICON, armed, deletedToast, pageShell, refreshNav, readOnlyHTML, whenIdle, debounce, fitText, noGame, freeName, toEntries, toRows, sameRows, typingIn } from './core.js';
 
 const app = document.getElementById('app');
@@ -94,9 +96,13 @@ function resultsHTML(cats = categories()) {
 
 function entryHTML(e, i) {
   if (!editing) {
-    return `<section class="card"><div class="shead"><h2>${escTxt(e.name)}</h2></div>
+    const img = store.imageOf(e.kind, e.name);
+    const gm = client.role === 'gm';
+    const isNew = isNewLore(parseSession(client.tab(SESSION_TAB).rows), e.kind, e.name);
+    return `<section class="card"><div class="shead"><h2>${escTxt(e.name)}</h2>${isNew ? '<span class="pill in" title="Shared this session">New</span>' : ''}<span class="grow"></span>
+        ${gm ? shareButtonHTML({ type: 'lore', ref: joinRef(e.kind, e.name), title: e.name }) : ''}${gm && img ? shareButtonHTML({ type: 'picture', ref: joinRef('Lore', e.kind, e.name), title: `${e.name} (picture)` }, 'Share picture') : ''}</div>
       ${e.notes ? `<div class="note">${escTxt(e.notes)}</div>` : ''}
-      ${e.value ? `<div class="rich">${md(e.value)}</div>` : ''}${pictureHTML('Lore', store.imageOf(e.kind, e.name), e.name, 'rimg')}</section>`;
+      ${e.value ? `<div class="rich">${md(e.value)}</div>` : ''}${pictureHTML('Lore', img, e.name, 'rimg')}</section>`;
   }
   return `<section class="card"><div class="shead">
       <input class="in st" data-f="name" data-i="${i}" value="${esc(e.name)}" aria-label="Title">
@@ -106,6 +112,8 @@ function entryHTML(e, i) {
     <textarea class="in rtext" data-f="value" data-i="${i}" aria-label="Text">${escTxt(e.value)}</textarea></section>`;
 }
 
+wireShare(main, client);
+client.tab(SESSION_TAB).on(() => { if (!editing) later(render); });
 main.addEventListener('click', e => {
   const b = e.target.closest('[data-act]');
   if (!b) return;

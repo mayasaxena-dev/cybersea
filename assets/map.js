@@ -13,6 +13,8 @@ import { md } from './markup.js';
 import { pictureHTML, showPictures, shrink } from './pictures.js';
 import { esc, escTxt, ICON, armed, modal, closeModal, toast, deletedToast, pageShell, refreshNav, debounce, noGame } from './core.js';
 import { hold } from './hold.js';
+import { shareButtonHTML, wireShare } from './share.js';
+import { joinRef } from './session-model.js';
 
 const app = document.getElementById('app');
 const game = bootstrap();
@@ -71,11 +73,14 @@ function placeHTML(p) {
     ? `<button class="pbtn mapon${p.on ? ' on' : ''}" data-place="${p.i}" aria-pressed="${p.on}" title="${p.on ? 'Take it off the crew’s map' : 'Put it on the crew’s map'}">${p.on ? 'On the map' : 'Hidden'}</button>`
     : '';
   const edit = (at, label) => (isGm() ? `<button class="ic" data-edit="${at}" title="${label}" aria-label="${label}">${ICON.pen}</button>` : '');
+  const share = isGm() ? shareButtonHTML({ type: 'place', ref: p.name, title: p.name }) + (p.image ? shareButtonHTML({ type: 'picture', ref: joinRef('Map', p.name), title: `${p.name} (picture)` }, 'Share picture') : '') : '';
+  const shareLv = lv && isGm() ? shareButtonHTML({ type: 'level', ref: joinRef(p.name, lv.name), title: `${p.name}: ${lv.name}` }, `Share ${lv.name}`) : '';
   return `<section class="card loc${p.on ? '' : ' off'}" id="loc-${p.i}"><div class="shead"><h2>${escTxt(p.name)}</h2>${toggle}${edit(p.at, `Edit ${esc(p.name)}`)}</div>
+    ${share ? `<div class="prow">${share}</div>` : ''}
     ${p.text.trim() ? `<div class="rich">${md(p.text)}</div>` : ''}
     ${imgHTML(p, 'rimg')}
     ${p.levels.length ? `<div class="levels">
-      <div class="shead"><div class="cats" role="group" aria-label="Levels">${p.levels.map((l, k) => `<button data-loc="${p.i}" data-lv="${k}" aria-pressed="${k === at}" class="${k === at ? 'on' : ''}">${escTxt(l.name)}</button>`).join('')}</div>${edit(lv.at, `Edit ${esc(lv.name)}`)}</div>
+      <div class="shead"><div class="cats" role="group" aria-label="Levels">${p.levels.map((l, k) => `<button data-loc="${p.i}" data-lv="${k}" aria-pressed="${k === at}" class="${k === at ? 'on' : ''}">${escTxt(l.name)}</button>`).join('')}</div>${edit(lv.at, `Edit ${esc(lv.name)}`)}${shareLv}</div>
       ${lv.text.trim() ? `<div class="rich">${md(lv.text)}</div>` : ''}${imgHTML(lv, 'rimg')}${notesHTML(lv)}</div>` : ''}
     ${notesHTML(p)}
     ${isGm() ? `<button class="add sm" data-new="level" data-for="${p.i}">+ Level</button>` : ''}</section>`;
@@ -116,7 +121,7 @@ function worldHTML() {
   const regions = W.map(r => ({ ...r, maps: r.maps.filter(m => !q || `${m.name} ${m.text}`.toLowerCase().includes(q)), places: r.places.filter(visible) }))
     .filter(r => r.maps.length || r.places.length);
   return `
-      ${regions.map(r => `<div class="mgroup"><h3>${escTxt(r.name || 'Places')}${gm ? r.maps.map(m => `<button class="ic" data-edit="${m.at}" title="Edit the ${esc(m.name)} map" aria-label="Edit the ${esc(m.name)} map">${ICON.pen}</button>`).join('') : ''}</h3>
+      ${regions.map(r => `<div class="mgroup"><h3>${escTxt(r.name || 'Places')}${gm ? r.maps.map(m => `<button class="ic" data-edit="${m.at}" title="Edit the ${esc(m.name)} map" aria-label="Edit the ${esc(m.name)} map">${ICON.pen}</button>`).join('') : ''}${gm && r.maps.length && r.name ? shareButtonHTML({ type: 'region', ref: r.name, title: `${r.name} map` }, 'Share map') : ''}</h3>
         ${r.maps.map(m => [imgHTML(m, 'mapimg'), m.text.trim() ? `<div class="rich">${md(m.text)}</div>` : '', notesHTML(m)].join('')).filter(Boolean).map(h => `<section class="worldmap">${h}</section>`).join('')}
         ${r.places.length ? `<div class="cols">${r.places.map(placeHTML).join('')}</div>` : ''}</div>`).join('')}
       ${!regions.some(r => r.places.length) ? `<div class="empty">${none}</div>` : ''}`;
@@ -135,6 +140,7 @@ async function setOn(p, on) {
   }
 }
 
+wireShare(main, client);
 main.addEventListener('click', e => {
   const ed = e.target.closest('[data-edit]');
   if (ed && isGm()) { openEditor(itemAt(+ed.dataset.edit)); return; }

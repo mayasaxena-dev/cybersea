@@ -8,6 +8,7 @@ import { md, short } from './markup.js';
 import { esc, escTxt, pageShell, refreshNav, modal, closeModal, pickerHTML, pick } from './core.js';
 import { crewCardHTML } from './cards.js';
 import { showPictures } from './pictures.js';
+import { shareButtonHTML, wireShare } from './share.js';
 
 const app = document.getElementById('app');
 const game = bootstrap();
@@ -44,6 +45,7 @@ if (!game) {
 
   const characters = () => client.list.filter(t => t.kind === 'character').map(t => t.name);
 
+  wireShare(main, client);
   let listed = false; // the server's tab list has arrived, so an empty crew really is empty
 
   // Crew who haven't signed in as a character get asked (until they pick one or say they're just looking).
@@ -57,6 +59,7 @@ if (!game) {
         ${pickerHTML(client, { looking: true })}
         <p class="note">The crew sees who’s signed in. To sign out later, use the button at the top right.</p>
       </section>` : ''}
+      ${client.role === 'gm' && names.length ? `<div class="prow shares"><span class="lbl">Share a card</span>${names.map(n => shareButtonHTML({ type: 'crew', ref: n, title: n }, n)).join('')}${shareButtonHTML({ type: 'ship', title: 'The ship' }, 'Ship')}</div>` : ''}
       ${names.length ? `<div class="crew">${names.map(n => crewCardHTML(client, n, { me: n === me })).join('')}</div>` : listed ? '<p class="note">No characters yet.</p>' : ''}
       <button class="add" data-act="new">+ New character</button>`;
     document.title = client.game.name || 'Cybersea';
