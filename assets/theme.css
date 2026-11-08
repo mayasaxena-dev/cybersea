@@ -410,6 +410,9 @@ main{padding-top:14px}
 .crew{display:grid;grid-template-columns:repeat(auto-fill,minmax(260px,1fr));gap:14px;margin-bottom:14px}
 a.crewcard{display:grid;align-content:start;gap:8px;color:var(--text);text-decoration:none;margin:0}
 a.crewcard:hover{border-color:var(--cyan)}
+a.crewcard.loading .note{animation:pulse 1.2s ease-in-out infinite alternate}
+@keyframes pulse{from{opacity:.4}to{opacity:1}}
+@media (prefers-reduced-motion:reduce){a.crewcard.loading .note{animation:none}}
 .cc-row{display:flex;align-items:center;gap:6px 8px;flex-wrap:wrap}
 .cc-row .lbl{min-width:44px}
 .cc-stats{gap:6px 12px;font:600 13px/1 "Chakra Petch",sans-serif}
