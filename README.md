@@ -187,7 +187,9 @@ session is running.
   page shows the same windows. Players can add notes to a folder and edit or delete their own; a
   note goes on the desktop only if the GM opens it. Deleting a lore, NPC, place or level share
   asks whether to take it out of the folder only or everywhere.
-- **The Map app.** The GM's **Map** button puts the map on the desktop: the same interactive
+- **Files and Map icons.** The desktop's **Files** and **Map** icons open those apps in windows
+  of each viewer's own, which they can move, resize and close; nobody else's desktop follows.
+- **The Map app.** The GM's **Map** icon puts the map on everyone's desktop: the same interactive
   map as the Map page, showing only what the crew see (even on the GM's screen). A shared place
   *is* a place on that map: opening its share brings up the Map app on that place, or inside it
   at a shared level, for everyone.
