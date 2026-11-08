@@ -1,0 +1,73 @@
+# Deploys apps-script/ to the games' Apps Script projects (tools/deploy-script.mjs):
+# - a push to main deploys to production, then to staging (so staging follows main again);
+# - a push to any other branch deploys to staging, so the staging game runs that branch;
+# - Run workflow (Actions tab) deploys any branch to either, and finishes a deploy that was
+#   waiting for new permissions.
+# Each game's ids and tokens are secrets of its GitHub environment (README, "Deploying from
+# GitHub"); without them the job does nothing. Pushes from forks never see the secrets.
+name: Deploy the script
+
+on:
+  push:
+    branches: ['**']
+    paths:
+      - apps-script/**
+      - tools/deploy-script.mjs
+      - .github/workflows/deploy-script.yml
+  workflow_dispatch:
+    inputs:
+      target:
+        description: Which game to deploy to
+        type: choice
+        options: [staging, production]
+        default: staging
+      scopes_approved:
+        description: New permissions are allowed (ran onOpen in the editor and allowed them)
+        type: boolean
+        default: false
+
+permissions:
+  contents: read
+
+jobs:
+  production:
+    if: github.ref == 'refs/heads/main' && (github.event_name == 'push' || inputs.target == 'production')
+    runs-on: ubuntu-latest
+    environment: production
+    concurrency: { group: deploy-production, cancel-in-progress: false }
+    steps:
+      - uses: actions/checkout@v4
+      - uses: actions/setup-node@v4
+        with: { node-version: 22 }
+      - name: Deploy to production
+        run: node tools/deploy-script.mjs
+        env:
+          SCRIPT_ID: ${{ secrets.SCRIPT_ID }}
+          GOOGLE_CLIENT_ID: ${{ secrets.GOOGLE_CLIENT_ID }}
+          GOOGLE_CLIENT_SECRET: ${{ secrets.GOOGLE_CLIENT_SECRET }}
+          GOOGLE_REFRESH_TOKEN: ${{ secrets.GOOGLE_REFRESH_TOKEN }}
+          SCOPES_APPROVED: ${{ inputs.scopes_approved && 'true' || 'false' }}
+          DEPLOY_LABEL: ${{ github.ref_name }}@${{ github.sha }}
+
+  staging:
+    needs: production
+    # Runs after production on main (even when production was skipped), on its own elsewhere.
+    if: >-
+      !cancelled() && needs.production.result != 'failure' &&
+      (github.event_name == 'push' || inputs.target == 'staging')
+    runs-on: ubuntu-latest
+    environment: staging
+    concurrency: { group: deploy-staging, cancel-in-progress: true }
+    steps:
+      - uses: actions/checkout@v4
+      - uses: actions/setup-node@v4
+        with: { node-version: 22 }
+      - name: Deploy to staging
+        run: node tools/deploy-script.mjs
+        env:
+          SCRIPT_ID: ${{ secrets.SCRIPT_ID }}
+          GOOGLE_CLIENT_ID: ${{ secrets.GOOGLE_CLIENT_ID }}
+          GOOGLE_CLIENT_SECRET: ${{ secrets.GOOGLE_CLIENT_SECRET }}
+          GOOGLE_REFRESH_TOKEN: ${{ secrets.GOOGLE_REFRESH_TOKEN }}
+          SCOPES_APPROVED: ${{ inputs.scopes_approved && 'true' || 'false' }}
+          DEPLOY_LABEL: ${{ github.ref_name }}@${{ github.sha }}
