@@ -546,7 +546,7 @@ body.cyber #app{max-width:none;padding:0 12px 24px}
 .sdot.on{background:var(--n);box-shadow:0 0 8px var(--n)}
 .prompt{display:flex;flex-wrap:wrap;align-items:center;gap:10px;margin:0 0 10px;padding:9px 14px;color:var(--text);background:rgba(255,63,210,.08);border:1px solid var(--g1);box-shadow:0 0 12px rgba(255,63,210,.25) inset}
 .prompt b{color:var(--g1)}
-.dwrap{display:grid;grid-template-columns:270px minmax(0,1fr) 250px;gap:10px;align-items:start}
+.dwrap{display:grid;grid-template-columns:minmax(0,1fr) 250px;gap:10px;align-items:start}
 @media (max-width:900px){.dwrap{grid-template-columns:1fr}.desktop{min-height:70vh}}
 
 /* panels: a dark glass plate with a neon edge and one cut corner */
@@ -584,11 +584,20 @@ body.cyber #app{max-width:none;padding:0 12px 24px}
 .desktop .win{position:absolute;z-index:1;min-width:150px;min-height:90px;transform:translateZ(0)}
 .dempty{position:absolute;inset:auto 0 42%;z-index:1;display:flex;flex-direction:column;align-items:center;gap:12px;color:var(--n-soft);font:600 13px "Chakra Petch",sans-serif;letter-spacing:.2em;text-transform:uppercase}
 .dempty .ico{width:60px;height:60px;filter:drop-shadow(-2px 0 var(--g1)) drop-shadow(2px 0 var(--g2))}
+/* the desktop's app icons, down its left edge, above any window so a player can always reach them */
+.dicons{position:absolute;left:10px;top:12px;z-index:3000;display:flex;flex-direction:column;gap:14px}
+.dicon{display:flex;flex-direction:column;align-items:center;gap:6px;width:72px;padding:8px 4px;background:none;border:1px solid transparent;color:var(--n);cursor:pointer;
+  font:600 11px "Chakra Petch",sans-serif;letter-spacing:.14em;text-transform:uppercase;text-shadow:-1px 0 var(--g1),1px 0 var(--g2)}
+.dicon .ico{width:40px;height:40px;filter:drop-shadow(0 0 6px rgba(62,232,242,.45))}
+.dicon:hover,.dicon:focus-visible{border-color:var(--n-dim);background:rgba(62,232,242,.08)}
+.dicon:hover .ico{filter:url(#rgb-split) drop-shadow(0 0 8px var(--n))}
+.desktop .dempty{left:90px}
 .wgrip{position:absolute;right:3px;bottom:3px;width:14px;height:14px;z-index:3;cursor:nwse-resize;background:linear-gradient(135deg,transparent 55%,var(--n) 55%,var(--n) 62%,transparent 62%,transparent 75%,var(--n) 75%,var(--n) 82%,transparent 82%)}
 
 /* the file browser */
 .explorer .addr{margin:8px 8px 4px;padding:4px 8px;color:var(--n);background:rgba(0,0,0,.5);border:1px solid rgba(62,232,242,.3);font:12px/1.4 "IBM Plex Mono",ui-monospace,monospace;overflow:hidden;text-overflow:ellipsis;white-space:nowrap}
 .explorer .addr::before{content:"> ";color:var(--g1)}
+.desk .ebody{padding:0 0 4px}
 .explorer .files{display:flex;flex-direction:column;gap:1px;margin:4px 8px;max-height:40vh;overflow:auto}
 .explorer .file{display:flex;align-items:center;gap:8px;padding:4px 6px;border:0;border-left:2px solid transparent;background:none;text-align:left;cursor:pointer;color:var(--text);font:inherit}
 .explorer .file:hover{background:var(--hud2);border-left-color:var(--n-dim)}

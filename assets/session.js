@@ -5,7 +5,7 @@
 // It shows only what's been shared, and never links to the GM page, so the GM can screenshare it.
 // The GM opens, moves, resizes and closes windows here; anyone signed in can add notes to a
 // folder, and edit or delete their own.
-import { bootstrap } from './games.js';
+import { bootstrap, ls, gkey } from './games.js';
 import { mountMap } from './mapview.js';
 import { GameClient } from './api.js';
 import { md } from './markup.js';
@@ -43,6 +43,19 @@ let shown = cwd;                   // the running session the explorer last open
 let sel = '';                      // the file the explorer previews
 let drag = null;                   // a window being moved or resized by the GM
 let seen = null;                   // the windows open at the last render (null before the first)
+
+/* ---------- this viewer's own apps ----------
+ * The desktop's icons open the Files and Map apps in windows of this viewer's own: nobody else's
+ * desktop follows them. The GM's Map icon opens the Map for everyone instead (MAP_WIN). Where they
+ * sit is kept in this browser.
+ */
+const APPS_KEY = gkey(game || { id: '' }, 'session-apps');
+const APP_BOX = { files: { x: 10, y: 3, w: 34, h: 90 }, map: { x: 14, y: 5, w: 70, h: 85 } };
+let apps = (() => { try { return ls.get(APPS_KEY, null) || { files: { ...APP_BOX.files, z: 1 } }; } catch { return { files: { ...APP_BOX.files, z: 1 } }; } })();
+const saveApps = () => { try { ls.set(APPS_KEY, apps); } catch { /* private window: they're not kept */ } };
+const appTop = () => Math.max(0, ...Object.values(apps).map(a => a.z || 0)) + 1;
+function openApp(id) { apps[id] = { ...(apps[id] || APP_BOX[id]), z: appTop() }; saveApps(); render(); }
+function closeApp(id) { delete apps[id]; saveApps(); render(); }
 
 /* ---------- what a share shows ---------- */
 const mapRows = () => client.tab('Map').rows;
@@ -163,20 +176,34 @@ function explorerHTML() {
     here.map(it => `<button class="file${sel === it.id ? ' on' : ''}${S.windows.some(w => w.id === it.id) ? ' open' : ''}" data-sel="${esc(it.id)}"><span class="fic">${iconOf(it)}</span><span>${escTxt(titleOf(it))}</span></button>`).join('');
   const it = here.find(i => i.id === sel);
   const canNote = !!cwd && (isGm() || client.canEdit(SESSION_TAB));
-  const tools = `${isGm() ? '<button class="pbtn" data-act="map">Map</button><button class="pbtn" data-act="mkdir">New folder</button>' : ''}${isGm() && cwd ? '<button class="pbtn" data-act="scene">Scene card</button>' : ''}${canNote ? '<button class="pbtn" data-act="note">New note</button>' : ''}`;
+  const tools = `${isGm() ? '<button class="pbtn" data-act="mkdir">New folder</button>' : ''}${isGm() && cwd ? '<button class="pbtn" data-act="scene">Scene card</button>' : ''}${canNote ? '<button class="pbtn" data-act="note">New note</button>' : ''}`;
   const preview = it ? `<div class="preview"><div class="phead"><b>${escTxt(titleOf(it))}</b><span class="grow"></span>
       ${isGm() ? `<button class="pbtn" data-open="${esc(it.id)}">${it.type === 'place' || it.type === 'level' ? 'Show on the map' : S.windows.some(w => w.id === it.id) ? 'Bring to front' : 'Open for everyone'}</button>` : ''}
       ${mine(it) ? `<button class="pbtn" data-edit="${esc(it.id)}">Edit</button>` : ''}
       ${isGm() || mine(it) ? `<button class="pbtn del" data-del="${esc(it.id)}">${icon('trash')}Delete</button>` : ''}</div>
       <div class="pbody">${bodyHTML(it)}</div></div>` : '';
-  return `<div class="win explorer" aria-label="Files">
-    <div class="wbar"><span class="wic" aria-hidden="true">${icon('computer')}</span><span class="wtitle">Files</span></div>
-    <div class="addr" aria-label="Folder">${escTxt(cwd ? `C:\\${cwd.replace(/\//g, '\\')}` : 'C:\\')}${ses ? ` <span class="cnt">${ses.end ? 'ended' : 'running'}</span>` : ''}</div>
+  return `<div class="addr" aria-label="Folder">${escTxt(cwd ? `C:\\${cwd.replace(/\//g, '\\')}` : 'C:\\')}${ses ? ` <span class="cnt">${ses.end ? 'ended' : 'running'}</span>` : ''}</div>
     <div class="files">${files || '<div class="empty">Nothing here yet.</div>'}</div>
     ${tools ? `<div class="prow tools">${tools}</div>` : ''}
-    ${preview}
-  </div>`;
+    ${preview}`;
 }
+
+// One of this viewer's app windows (see apps): anyone can move, resize or close their own.
+function appHTML(id) {
+  const [title, ic, body, cls] = id === 'files' ? ['Files', 'computer', explorerHTML(), 'wbody ebody'] : ['Map', 'web', '<div data-mapslot></div>', 'wbody mapbody'];
+  return `<section class="win app${id === 'files' ? ' explorer' : ''}" data-app-win="${id}" aria-label="${title}">
+    <div class="wbar" data-drag="move"><span class="wic" aria-hidden="true">${icon(ic)}</span><span class="wtitle">${title}</span>
+      <button class="wbtn" data-aclose="${id}" title="Close" aria-label="Close">×</button></div>
+    <div class="${cls}">${body}</div>
+    <span class="wgrip" data-drag="size" aria-hidden="true"></span>
+  </section>`;
+}
+// The app windows to show: the Map's own only while the GM hasn't opened it for everyone.
+const appsShown = () => Object.keys(apps).filter(id => APP_BOX[id] && !(id === 'map' && S.windows.some(w => w.id === MAP_WIN)));
+const iconsHTML = () => `<nav class="dicons" aria-label="Apps">
+    <button class="dicon" data-app="files" title="Your file browser"><img class="ico" src="assets/icons/computer.svg" alt=""><span>Files</span></button>
+    <button class="dicon" data-app="map" title="${isGm() ? 'Open the map for everyone' : 'The map'}"><img class="ico" src="assets/icons/web.svg" alt=""><span>Map</span></button>
+  </nav>`;
 
 /* ---------- rolls ---------- */
 // The session's rolls: live from the Rolls tab while it runs, or what it kept when it ended.
@@ -243,7 +270,7 @@ function runPrompt(action, stamp) {
 function render() {
   S = parseSession(store.rows);
   // A session that starts (or is running when the page opens) opens in the explorer.
-  if (S.current && S.current.title !== shown) { cwd = S.current.title; sel = ''; }
+  if (S.current && S.current.title !== shown) { cwd = S.current.title; sel = ''; if (!apps.files) apps.files = { ...APP_BOX.files, z: appTop() }; }
   shown = S.current?.title || '';
   if (cwd && !S.folders.includes(cwd)) cwd = '';
   document.title = `${S.current ? '● ' : ''}Session · ${client.game.name || 'Cybersea'}`;
@@ -253,8 +280,7 @@ function render() {
     <div class="sbanner" role="banner"><span class="sdot${S.current ? ' on' : ''}" aria-hidden="true"></span><span class="gtext" data-text="SESSION · shared screen">SESSION · shared screen</span><span class="grow"></span><span>${live}</span></div>
     ${promptHTML()}
     <div class="dwrap">
-      <aside class="dside">${explorerHTML()}</aside>
-      <section class="desktop" id="desktop" aria-label="Desktop">${S.windows.map(windowHTML).join('') || `<div class="dempty">${icon('star4')}<span>Nothing open on the desktop.</span></div>`}</section>
+      <section class="desktop" id="desktop" aria-label="Desktop">${iconsHTML()}${S.windows.map(windowHTML).join('')}${appsShown().map(appHTML).join('')}${S.windows.length || appsShown().length ? '' : `<div class="dempty">${icon('star4')}<span>Nothing open on the desktop.</span></div>`}</section>
       <aside class="dside drolls"><div class="win"><div class="wbar"><span class="wic" aria-hidden="true">${icon('hourglass')}</span><span class="wtitle">Rolls</span></div><div class="wbody">${rollsHTML()}</div></div></aside>
     </div>`;
   // Where each window sits (the page's CSP allows no inline style attributes, so it's set here).
@@ -265,7 +291,14 @@ function render() {
     Object.assign(el.style, { left: `${w.x}%`, top: `${w.y}%`, width: `${w.w}%`, height: `${w.h}%`, zIndex: String(w.z) });
     if (seen && !seen.has(w.id)) el.classList.add('fresh');
   }
-  seen = new Set(S.windows.map(w => w.id));
+  // This viewer's apps sit above what the GM shares.
+  for (const id of appsShown()) {
+    const a = apps[id];
+    const el = main.querySelector(`[data-app-win="${id}"]`);
+    Object.assign(el.style, { left: `${a.x}%`, top: `${a.y}%`, width: `${a.w}%`, height: `${a.h}%`, zIndex: String(1000 + (a.z || 0)) });
+    if (seen && !seen.has(`app:${id}`)) el.classList.add('fresh');
+  }
+  seen = new Set([...S.windows.map(w => w.id), ...appsShown().map(id => `app:${id}`)]);
   placeMap();
   requestAnimationFrame(glitchAll);
 }
@@ -304,8 +337,10 @@ function glitch(img) {
   box.classList.add('glitchy');
   box.append(strips);
 }
-const glitchAll = () => main.querySelectorAll('.desktop .wbody img').forEach(img => { if (!img.closest('.mapapp')) glitch(img); });
-main.addEventListener('load', e => { if (e.target.matches?.('.desktop .wbody img') && !e.target.closest('.mapapp')) glitch(e.target); }, true);
+// Only what the GM shares glitches: not icons, the map, or the viewer's Files.
+const glitchy = img => img.matches('.desktop [data-win] .wbody img:not(.ico)') && !img.closest('.mapapp');
+const glitchAll = () => main.querySelectorAll('.desktop [data-win] .wbody img').forEach(img => { if (glitchy(img)) glitch(img); });
+main.addEventListener('load', e => { if (e.target.matches?.('img') && glitchy(e.target)) glitch(e.target); }, true);
 
 const busy = () => !!drag || typingIn(main) || !!document.getElementById('overlay');
 const later = whenIdle(main, busy);
@@ -424,6 +459,11 @@ main.addEventListener('click', e => {
   if (s) { sel = sel === s.dataset.sel ? '' : s.dataset.sel; render(); return; }
   const op = e.target.closest('[data-open]');
   if (op && isGm()) { const it = itemOf(op.dataset.open); if (it && (it.type === 'place' || it.type === 'level')) showOnMap(it); else openWindow(op.dataset.open); return; }
+  const ap = e.target.closest('[data-app]')?.dataset.app;
+  if (ap === 'map' && isGm()) { if (apps.map) delete apps.map; saveApps(); openWindow(MAP_WIN); return; }
+  if (ap) { openApp(ap); return; }
+  const ac = e.target.closest('[data-aclose]');
+  if (ac) { closeApp(ac.dataset.aclose); return; }
   const cl = e.target.closest('[data-wclose]');
   if (cl && isGm()) { setWindows(rows => withoutWindow(rows, cl.dataset.wclose)); render(); return; }
   const ed = e.target.closest('[data-edit]');
@@ -436,22 +476,23 @@ main.addEventListener('click', e => {
   if (act === 'note') editNote(null);
   if (act === 'scene' && isGm()) sceneCard();
   if (act === 'mkdir' && isGm()) mkdir();
-  if (act === 'map' && isGm()) openWindow(MAP_WIN);
 });
 
 // The GM drags a window by its title bar, or resizes it by its corner; everyone's desktop follows
 // once it's dropped.
 main.addEventListener('pointerdown', e => {
   const h = e.target.closest('[data-drag]');
-  if (!h || !isGm() || e.target.closest('button')) return;
-  const win = h.closest('[data-win]');
+  if (!h || e.target.closest('button')) return;
+  const app = h.closest('[data-app-win]')?.dataset.appWin;
+  if (!app && !isGm()) return;
+  const win = h.closest('[data-win],[data-app-win]');
   const desk = document.getElementById('desktop');
-  const w = S.windows.find(x => x.id === win.dataset.win);
+  const w = app ? apps[app] : S.windows.find(x => x.id === win.dataset.win);
   if (!w || !desk) return;
   e.preventDefault();
   const r = desk.getBoundingClientRect();
-  drag = { id: w.id, mode: h.dataset.drag, x0: e.clientX, y0: e.clientY, box: { x: w.x, y: w.y, w: w.w, h: w.h }, r, win, now: null };
-  win.style.zIndex = String(topZ(S));
+  drag = { id: app || w.id, app: !!app, mode: h.dataset.drag, x0: e.clientX, y0: e.clientY, box: { x: w.x, y: w.y, w: w.w, h: w.h }, r, win, now: null };
+  win.style.zIndex = String(app ? 1000 + appTop() : topZ(S));
   win.setPointerCapture?.(e.pointerId);
 });
 main.addEventListener('pointermove', e => {
@@ -464,8 +505,9 @@ main.addEventListener('pointermove', e => {
 });
 const drop = () => {
   if (!drag) return;
-  const { id, now } = drag;
+  const { id, now, app } = drag;
   drag = null;
+  if (app) { if (now) apps[id] = { ...now, z: appTop() }; saveApps(); render(); return; }
   setWindows(rows => [...withoutWindow(rows, id), windowRow(id, now || S.windows.find(x => x.id === id), topZ(S))]);
   render();
 };
@@ -473,6 +515,8 @@ main.addEventListener('pointerup', drop);
 main.addEventListener('pointercancel', drop);
 // A click on a window brings it to the front, for the GM.
 main.addEventListener('dblclick', e => {
+  const a = e.target.closest('[data-app-win]');
+  if (a) { openApp(a.dataset.appWin); return; }
   const win = e.target.closest('[data-win]');
   if (win && isGm()) openWindow(win.dataset.win);
 });

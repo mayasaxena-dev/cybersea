@@ -108,7 +108,7 @@ test('the GM shares a place into the session folder: it’s on the crew’s map,
   assert.doesNotMatch(shown, /Hidden Dock|Dark Vault|Sharks below|Someone is listening/, 'nothing the crew can’t see, even for the GM');
   assert.equal(await s.$('.mapapp [data-share], .mapapp [data-edit], .mapapp [data-arrange]'), null, 'and none of the GM’s tools');
   assert.equal(await p.$('.desktop [data-wclose]'), null, 'players can’t close it');
-  assert.equal(await p.$('.desktop [data-drag]'), null, 'or move it');
+  assert.equal(await p.$('.desktop [data-win] [data-drag]'), null, 'or move it');
 
   // The GM moves it; everyone's follows.
   // Measured in the page in one go: a redraw can swap the element between a find and a measure.
@@ -117,14 +117,14 @@ test('the GM shares a place into the session folder: it’s on the crew’s map,
   await s.mouse.down();
   await s.mouse.move(b.x + 140, b.y + 108, { steps: 5 });
   await s.mouse.up();
-  const box = async q => q.$eval('.desktop .win', w => w.style.left);
+  const box = async q => q.$eval('.desktop .win[data-win]', w => w.style.left);
   assert.match(await box(p), /%$/, 'windows sit where the GM put them');
   const moved = await until(async () => { const x = rowsOf(await sessionRows(), 'window')[0]?.[2].split(' ')[0]; return x !== '6' && x; });
   assert.ok(moved, 'the move is kept');
   assert.ok(await until(async () => (await box(p)) === `${moved}%`), 'the player’s window moved too');
 
   await s.click('.desktop [data-wclose]');
-  await p.waitForSelector('.desktop .win', { state: 'detached' });
+  await p.waitForSelector('.desktop .win[data-win]', { state: 'detached' });
   assert.equal(rowsOf(await sessionRows(), 'window').length, 0);
   await p.close();
   await s.close();
@@ -196,7 +196,7 @@ test('notes: players add, edit and delete their own; only the GM puts them on th
   await p.click('[role="dialog"] [data-save]');
   assert.ok(await until(async () => rowsOf(await sessionRows(), 'note').some(r => r[3] === 'note: Testa\nAsk about the crates.')));
   assert.equal(rowsOf(await sessionRows(), 'note').length, 1);
-  assert.equal(await p.$('.desktop .win'), null, 'not on the desktop yet');
+  assert.equal(await p.$('.desktop .win[data-win]'), null, 'not on the desktop yet');
 
   // Anyone else can read it, but not change it.
   const q = await player('session.html', null);
@@ -298,4 +298,33 @@ test('the GM shares a crew card from the card itself, or a sheet from its menu',
   await p.click('[data-act="sheet-menu"]');
   assert.equal(await p.$('[role="dialog"] [data-s="share"]'), null, 'players don’t get Share');
   for (const x of [g, s, p]) await x.close();
+});
+
+test('the desktop’s Files and Map icons open apps of the viewer’s own', async () => {
+  const p = await player();
+  await p.waitForSelector('.dicons [data-app="files"]');
+  assert.equal(!!(await p.$('.dside .explorer')), false, 'no Files sidebar');
+  await p.waitForSelector('[data-app-win="files"] .explorer, [data-app-win="files"].explorer');
+  await p.click('[data-aclose="files"]');
+  await p.waitForSelector('[data-app-win="files"]', { state: 'detached' });
+  await p.click('.dicons [data-app="files"]');
+  await p.waitForSelector('[data-app-win="files"] .addr');
+
+  const before = rowsOf(await sessionRows(), 'window').length;
+  await p.click('.dicons [data-app="map"]');
+  await p.waitForSelector('[data-app-win="map"] .mapapp');
+  assert.equal(rowsOf(await sessionRows(), 'window').length, before, 'nobody else’s desktop changes');
+
+  // A player moves their own.
+  const b = await until(() => p.evaluate(() => { const r = document.querySelector('[data-app-win="map"] .wbar')?.getBoundingClientRect(); return r?.width ? { x: r.x, y: r.y } : null; }));
+  const left = await p.$eval('[data-app-win="map"]', w => w.style.left);
+  await p.mouse.move(b.x + 40, b.y + 8);
+  await p.mouse.down();
+  await p.mouse.move(b.x + 120, b.y + 60, { steps: 4 });
+  await p.mouse.up();
+  assert.ok(await until(async () => (await p.$eval('[data-app-win="map"]', w => w.style.left)) !== left), 'it moved');
+  await p.reload();
+  await p.waitForSelector('[data-app-win="map"] .mapapp');
+  assert.notEqual(await p.$eval('[data-app-win="map"]', w => w.style.left), left, 'and stays where it was put');
+  await p.close();
 });

@@ -185,10 +185,12 @@ function startSession() {
   const now = new Date().toISOString();
   sessionRows(rows => [...rows.filter(r => !(String(r[0]).toLowerCase() === 'prompt')), ['session', title, now, ''], promptRow('session-begin', title)]).then(render);
 }
-function endSession() {
+// The session keeps its rolls as the sheet has them now, not as this page last read them.
+async function endSession() {
   const S = parseSession(client.tab(SESSION_TAB).rows);
   const cur = S.current;
   if (!cur) return;
+  await client.read([ROLLS_TAB]).catch(() => {});
   const now = new Date().toISOString();
   const from = Date.parse(cur.start) || 0;
   const rolls = client.tab(ROLLS_TAB).rows.map(parseRoll).filter(r => Date.parse(r.when) >= from).map(rollLine).join('\n');
