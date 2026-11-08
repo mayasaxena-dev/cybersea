@@ -580,19 +580,56 @@ invite link keeps working across tries, and nothing done to it reaches the real 
 
 ### Trying a branch on it
 
-- **Script changes** (`apps-script/`): in the staging script's properties, set `UPDATE_FROM` to
-  `mayasaxena/cybersea@your-branch`, then pick **Cybersea → Update the script** in the staging
-  sheet. Pick it again after each push to the branch. When the branch is merged, set
-  `UPDATE_FROM` back to `mayasaxena/cybersea@main` (or delete it) and update the staging script
-  once more, then update the real game's script from its menu.
-- **Site changes**: check out the branch, run `npm run dev`, and open the staging invite with
-  its address swapped for `http://localhost:8080/`: keep everything from `#join=` on. Invite
-  links work on any copy of the site, because the game is in the part after `#`. The local
-  site keeps its own list of games (browsers keep it per address), so the real game isn't on
-  it unless you open its invite there too. Don't: a branch's site writes to whatever game it
-  has open.
+- **Script changes** (`apps-script/`): with [Deploying from GitHub](#deploying-from-github) set
+  up, each push to the branch deploys it to staging, and merging it deploys `main` to the real
+  game and puts staging back on `main`. Without it, set `UPDATE_FROM` in the staging script's
+  properties to `mayasaxena-dev/cybersea@your-branch` and pick **Cybersea → Update the script**
+  in the staging sheet after each push. When the branch is merged, set `UPDATE_FROM` back to
+  `mayasaxena-dev/cybersea@main` (or delete it), update the staging script once more, then
+  update the real game's script from its menu.
+- **Site changes**: open the branch's preview (see [Branch previews](#branch-previews)) with the
+  staging invite's address swapped for the preview's: keep everything from `#join=` on. Or check
+  out the branch, run `npm run dev`, and use `http://localhost:8080/` the same way. Invite links
+  work on any copy of the site, because the game is in the part after `#`. Each preview keeps
+  its own list of games (browsers keep it per address), so the real game isn't on it unless you
+  open its invite there too. Don't: a branch's site writes to whatever game it has open.
 - The hosted site keeps running `main`, so the crew never see a branch. It can open the staging
   game too, which shows how `main` behaves with the branch's script.
+
+### Branch previews
+
+Cloudflare Workers can host every branch at its own address, so a branch can be tried from any
+browser or phone without checking it out. The site needs no build: `wrangler.jsonc` tells
+Cloudflare to serve the repository's files as they are, and `.assetsignore` leaves out
+everything that isn't the site (the script, tests, tools and docs). The rest is set up in
+Cloudflare's dashboard (once):
+
+1. Sign in to [Cloudflare](https://dash.cloudflare.com/sign-up) (the free plan is enough).
+2. Go to **Workers & Pages → Create application → Import a repository**, connect GitHub, and
+   give Cloudflare's app access to this repository. Installing the app needs admin access to
+   the repository's owner on GitHub.
+3. Pick the repository. Keep the project name `cybersea` (it has to match the `name` in
+   `wrangler.jsonc`), leave **Build command** empty, keep the deploy command
+   `npx wrangler deploy`, and deploy.
+4. In the new Worker, open **Settings → Build → Branch control**: check that the production
+   branch is `main` and **Enable Preview Builds** is ticked.
+
+After that, each push to a branch uploads a preview, and each pull request gets a comment with
+its links. The branch link, `https://<branch>-cybersea.<subdomain>.workers.dev/`, stays the same
+across pushes, so a staging invite opened there once keeps working (`<subdomain>` is the
+account's workers.dev name, shown under **Workers & Pages**). `main` lands on
+`https://cybersea.<subdomain>.workers.dev/`; the crew can keep using the usual site.
+
+Notes:
+
+- Previews show only the site. A branch's script changes reach staging as above, so a preview
+  opened on the staging invite runs the branch's site against the branch's script.
+- Preview addresses are public, like the repository: they hold no game. The game comes from
+  the invite, so share staging invites only with whoever is testing.
+- Cloudflare drops `.html` from page addresses (`/sheet.html` opens as `/sheet`). The site
+  works either way.
+- A file added to the repository root that isn't part of the site should go in
+  `.assetsignore` too, or the previews serve it.
 
 ### Bringing the real game's data in again
 
