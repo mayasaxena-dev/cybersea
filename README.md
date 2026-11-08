@@ -572,24 +572,27 @@ invite link keeps working across tries, and nothing done to it reaches the real 
 
 ### Branch previews
 
-Cloudflare Pages can host every branch at its own address, so a branch can be tried from any
-browser or phone without checking it out. The site needs no build, so the setup is all in
+Cloudflare Workers can host every branch at its own address, so a branch can be tried from any
+browser or phone without checking it out. The site needs no build: `wrangler.jsonc` tells
+Cloudflare to serve the repository's files as they are, and `.assetsignore` leaves out
+everything that isn't the site (the script, tests, tools and docs). The rest is set up in
 Cloudflare's dashboard (once):
 
 1. Sign in to [Cloudflare](https://dash.cloudflare.com/sign-up) (the free plan is enough).
-2. Go to **Workers & Pages → Create → Pages → Import an existing Git repository**, connect
-   GitHub, and give Cloudflare's app access to this repository. Installing the app needs
-   admin access to the repository's owner on GitHub.
-3. Pick the repository, set **Production branch** to `main`, **Framework preset** to *None*,
-   leave **Build command** empty and set **Build output directory** to `/`. Save and deploy.
+2. Go to **Workers & Pages → Create application → Import a repository**, connect GitHub, and
+   give Cloudflare's app access to this repository. Installing the app needs admin access to
+   the repository's owner on GitHub.
+3. Pick the repository. Keep the project name `cybersea` (it has to match the `name` in
+   `wrangler.jsonc`), leave **Build command** empty, keep the deploy command
+   `npx wrangler deploy`, and deploy.
+4. In the new Worker, open **Settings → Build → Branch control**: check that the production
+   branch is `main` and **Enable Preview Builds** is ticked.
 
-After that, each push to a branch deploys it to
-`https://<branch>.<project>.pages.dev/`, where `<branch>` is the branch name in lower case
-with anything other than letters and digits turned into `-` (so `claude/fix-map` becomes
-`claude-fix-map`), and each pull request gets a comment and a check with its preview link.
-Each branch's address stays the same across pushes, so a staging invite opened there once
-keeps working. `main` also lands on `https://<project>.pages.dev/`; the crew can keep using
-the usual site.
+After that, each push to a branch uploads a preview, and each pull request gets a comment with
+its links. The branch link, `https://<branch>-cybersea.<subdomain>.workers.dev/`, stays the same
+across pushes, so a staging invite opened there once keeps working (`<subdomain>` is the
+account's workers.dev name, shown under **Workers & Pages**). `main` lands on
+`https://cybersea.<subdomain>.workers.dev/`; the crew can keep using the usual site.
 
 Notes:
 
@@ -599,6 +602,8 @@ Notes:
   the invite, so share staging invites only with whoever is testing.
 - Cloudflare drops `.html` from page addresses (`/sheet.html` opens as `/sheet`). The site
   works either way.
+- A file added to the repository root that isn't part of the site should go in
+  `.assetsignore` too, or the previews serve it.
 
 ### Bringing the real game's data in again
 

@@ -1,0 +1,7 @@
+// Hosting for Cloudflare Workers branch previews (README, "Branch previews").
+// The site needs no build: the Worker only serves the repository's static files.
+{
+  "name": "cybersea",
+  "compatibility_date": "2026-11-01",
+  "assets": { "directory": "." }
+}
