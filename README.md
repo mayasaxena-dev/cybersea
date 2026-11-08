@@ -165,6 +165,32 @@ and clears older ones, and an import leaves the tab alone. Delete rows (or the w
 Google Sheets to clear the feed. A game whose script is older than this says so in the panel
 instead of sharing: update the script.
 
+### The Session page
+
+**Session** in the top bar is a desktop the whole table shares during play, made for screensharing:
+it shows only what the GM has shared and has no link to the GM page. The link is lit while a
+session is running.
+
+- **Sessions.** The GM starts one on the GM page's **Session** tab (with a title), ends it, or
+  ends the chapter. Each player then gets a prompt on the Session page to run Session Begins,
+  Session Ends or Chapter's End on their sheet: it asks for any choices, one tap runs it, and
+  **Undo** puts the sheet back. The GM's tab ticks off who has run it.
+- **Folders.** Each session is a folder; the GM can make others ("Vega Station/NPCs"). The
+  **Share** buttons on the GM page (NPCs, secrets, notes, clocks), the Map (places, levels,
+  region maps, pictures), Lore, Rules, Crew and the GM's crew tab file something into a folder.
+  Sharing a place puts it on the crew's map; a level shows on its own; a secret or note goes on
+  the Lore page under Revealed; lore shared during a session is marked new until it ends; a
+  clock follows the GM's; an NPC's ticked parts (tags, harm, notes) go on the **NPCs** page,
+  where the crew keep their own notes on them. The GM types **Scene cards** on the Session page.
+- **Windows.** The GM opens a share for everyone, moves, resizes and closes it; every Session
+  page shows the same windows. Players can add notes to a folder and edit or delete their own; a
+  note goes on the desktop only if the GM opens it. Deleting a lore, NPC, place or level share
+  asks whether to take it out of the folder only or everywhere.
+- **Rolls.** The session's rolls sit beside the desktop; when it ends, its folder keeps them.
+
+It all lives in the **Session** and **NPCs** tabs, which the GM's first share makes (script
+version 12). The crew can write only their notes and prompt ticks there.
+
 ## Theming the rules (Cybersea over Rapscallion)
 
 The Rules tab keeps the book's rows as they are. Three more columns, after **Vis**, hold the

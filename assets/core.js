@@ -5,6 +5,7 @@ import { isSignedIn, isSigninRow } from './codec.js';
 import { UNDO_MS, offerUndo, withdrawUndo } from './hold.js';
 import { ls, gkey, listGames, inviteUrl, href, joinGame, forgetGame, inviteFromText } from './games.js';
 import { sharedRolls } from './rolls.js';
+import { parseSession, SESSION_TAB } from './session-model.js';
 
 export { esc, escTxt };
 
@@ -244,7 +245,7 @@ export function closeModal() {
   opener = null;
   if (!back) return;
   const el = back.el.isConnected ? back.el : back.sel && document.querySelector(back.sel);
-  el?.focus({ preventScroll: true });
+  if (el) el.focus?.({ preventScroll: true });
 }
 
 function trapTab(e, panel) {
@@ -313,12 +314,18 @@ export function askKey(client, message = '') {
 }
 
 /* ---------- top bar ---------- */
-const PAGES = [['home', 'index.html', 'Crew'], ['ship', 'ship.html', 'Ship'], ['lore', 'lore.html', 'Lore'], ['map', 'map.html', 'Map'], ['rules', 'rules.html', 'Rules'], ['gm', 'gm.html', 'GM']];
+const PAGES = [['home', 'index.html', 'Crew'], ['ship', 'ship.html', 'Ship'], ['lore', 'lore.html', 'Lore'], ['npcs', 'npcs.html', 'NPCs'], ['map', 'map.html', 'Map'], ['rules', 'rules.html', 'Rules'], ['session', 'session.html', 'Session'], ['gm', 'gm.html', 'GM']];
 
+// The Session page is shared on screen, so it never links to the GM page or offers the GM link,
+// even to the GM. The Session link is lit while a session is running; NPCs shows once the GM has
+// shared one.
+let navPage = '';
+const sessionLive = client => !!client && !!parseSession(client.tab(SESSION_TAB).rows).current;
+const hasNpcs = client => !!client?.list.some(t => t.kind === 'npcs');
 export function navHTML(client, page) {
   const g = client?.game;
-  const links = PAGES.filter(([k]) => k !== 'gm' || client?.role === 'gm')
-    .map(([k, file, label]) => `<a href="${esc(href(file, g))}"${k === page ? ' aria-current="page"' : ''}>${label}</a>`).join('');
+  const links = PAGES.filter(([k]) => (k !== 'gm' || (client?.role === 'gm' && page !== 'session')) && (k !== 'npcs' || hasNpcs(client) || page === 'npcs'))
+    .map(([k, file, label]) => `<a href="${esc(href(file, g))}"${k === page ? ' aria-current="page"' : ''}${k === 'session' && sessionLive(client) ? ' class="live" title="A session is running"' : ''}>${label}</a>`).join('');
   return `<nav class="gnav">
     <a class="gname" href="${esc(href('index.html', g))}">${escTxt(g?.name || 'Cybersea')}</a>
     <div class="glinks">${links}</div>
@@ -468,7 +475,7 @@ export function openMenu(client) {
     <div class="status" id="sync-status">${escTxt(statusText(client))}</div>
     <div class="prow">
       <button class="pbtn" data-m="invite">${client.role === 'gm' ? 'Copy crew invite' : 'Copy invite link'}</button>
-      ${client.role === 'gm' ? '<button class="pbtn" data-m="gm-invite">Copy GM link</button>' : ''}
+      ${client.role === 'gm' && navPage !== 'session' ? '<button class="pbtn" data-m="gm-invite">Copy GM link</button>' : ''}
       <button class="pbtn" data-m="key">${client.role === 'gm' ? 'Change passphrase' : 'GM sign-in'}</button>
     </div>` : ''}
     <div class="mhd lbl">Games</div>
@@ -551,6 +558,11 @@ export function noGame(root, page, { msg = 'Open this page from an invite link f
 // roller (pages with dice): () => ({ who, tab }), whose sheet a roll is on (see rolls.js).
 export function pageShell(root, client, page, { roller } = {}) {
   applyTheme();
+  navPage = page;
+  if (client) {
+    client.readAlong(SESSION_TAB);
+    client.tab(SESSION_TAB).on(() => refreshNav(client, page));
+  }
   navNow = navHTML(client, page);
   root.insertAdjacentHTML('afterbegin', navNow);
   if (client && !document.querySelector('.fb')) { document.body.insertAdjacentHTML('beforeend', feedbackButton()); document.body.classList.add('has-fb'); }

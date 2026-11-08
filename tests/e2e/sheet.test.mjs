@@ -79,7 +79,7 @@ test('an invite opens the sheet and the passphrase leaves the URL', async () => 
   assert.equal(await p.textContent('h1.name'), 'Testa');
   assert.ok(!p.url().includes('#join'), p.url());
   assert.match(p.url(), /[?&]g=/);
-  assert.deepEqual(await p.$$eval('.glinks a', as => as.map(a => a.textContent)), ['Crew', 'Ship', 'Lore', 'Map', 'Rules']);
+  assert.deepEqual(await p.$$eval('.glinks a', as => as.map(a => a.textContent)), ['Crew', 'Ship', 'Lore', 'Map', 'Rules', 'Session']);
   assert.ok(await p.$('.bonds .bond'), 'bonds card is shown');
 });
 
