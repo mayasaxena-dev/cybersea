@@ -13,7 +13,8 @@
  *
  * Tabs: Rules (Kind|Group|Name|Text|Meta|Vis, plus optional Override name|Override text|Override
  * meta columns, found by their headers), System (the game's mechanics), GM, Lore, Ship, Map (the world: see mapRows_),
- * Images (pictures by name: see namedImages_), Rolls (dice the crew shared: see roll_), and one
+ * Images (pictures by name: see namedImages_), Rolls (dice the crew shared: see roll_), Session
+ * (the shared session desktop: see CREW_ROWS) and NPCs (what the GM shared of each NPC), and one
  * tab per character (Kind|Name|Value|Notes, plus an optional Image column: see picture_). Tabs starting with "_" and README are ignored. The tabs the site
  * edits also get a hidden Version column (see "row versions" below).
  *
@@ -25,7 +26,7 @@
  * @OnlyCurrentDoc
  */
 
-const API_VERSION = 11; // the site turns away a script older than the one it needs (assets/api.js)
+const API_VERSION = 12; // the site turns away a script older than the one it needs (assets/api.js)
 const HEADER = ['Kind', 'Name', 'Value', 'Notes'];
 const RULES_HEADER = ['Kind', 'Group', 'Name', 'Text', 'Meta', 'Vis'];
 // The game's mechanics (stats, tracks, starting cards, options): read by everyone, edited only in Sheets.
@@ -173,10 +174,20 @@ function forbidden_() {
 /* ---------- tabs ---------- */
 
 // Tabs named one of these are that kind; any other tab (but README and _hidden ones) is a character.
-const TAB_KINDS = ['rules', 'system', 'gm', 'lore', 'ship', 'map', 'feedback', 'images', 'rolls'];
+const TAB_KINDS = ['rules', 'system', 'gm', 'lore', 'ship', 'map', 'feedback', 'images', 'rolls', 'session', 'npcs'];
 // Kinds the site never patches (tools/xlsx keeps the same lists). Rolls change only through roll_ and unroll_.
 const SHEETS_ONLY = ['rules', 'system', 'map', 'feedback', 'images', 'rolls'];
 const sheetsOnly_ = kind => SHEETS_ONLY.indexOf(kind) >= 0;
+// The Session tab (the shared desktop: folders, shares, open windows, sessions; see
+// assets/session-model.js) and the NPCs tab (what the GM shared of each NPC) are the GM's to
+// write, but for these kinds of row, which the crew write too: their own notes and "done" marks,
+// and their notes on an NPC. Only the GM makes either tab.
+const CREW_ROWS = { session: ['note', 'done'], npcs: ['crew'] };
+const gmTab_ = kind => kind === 'gm' || kind === 'session' || kind === 'npcs';
+function crewMay_(role, kind, rowKind) {
+  if (role === 'gm' || !CREW_ROWS[kind]) return true;
+  return CREW_ROWS[kind].indexOf(String(rowKind || '').trim().toLowerCase()) >= 0;
+}
 
 function tabKind_(name) {
   const n = String(name).trim().toLowerCase();
@@ -558,6 +569,8 @@ function patch_(role, req) {
   if (!sh) return { ok: false, code: 'missing', error: 'No tab called "' + req.tab + '".' };
   const kind = tabKind_(sh.getName());
   if (!canWrite_(role, kind)) return sheetsOnly_(kind) ? { ok: false, code: 'forbidden', error: 'That tab is edited in the spreadsheet itself.' } : forbidden_();
+  const rowKinds = [].concat(req.ren || [], req.set || [], req.del || []).map(r => (r || [])[0]);
+  if (rowKinds.some(k => !crewMay_(role, kind, k))) return forbidden_();
 
   const sets = (req.set || []).map(r => ({ cells: cells_(r, 4), w: when_(r[4]) }));
   const vc = verCol_(sh);
@@ -783,7 +796,7 @@ function create_(role, req) {
     return { ok: false, code: 'name', error: 'Pick a different name: up to ' + MAX_TAB_NAME + ' characters, without [ ] * ? / \\ :' };
   }
   const kind = tabKind_(name);
-  if (!kind || sheetsOnly_(kind) || (kind === 'gm' && role !== 'gm')) {
+  if (!kind || sheetsOnly_(kind) || (gmTab_(kind) && role !== 'gm')) {
     return { ok: false, code: 'name', error: '"' + name + '" is a reserved name.' };
   }
   const ss = SpreadsheetApp.getActiveSpreadsheet();
@@ -831,6 +844,7 @@ function mapRows_(sh, role, named) {
   const tokens = cols[3] >= 0 ? imageTokens_(sh, cols[3], grid.length - 1, named) : null;
   const out = [];
   const shown = {};
+  const someLevels = {};
   grid.slice(1).forEach((line, i) => {
     const cells = cols.map(c => (c >= 0 && line[c] != null ? String(line[c]) : ''));
     if (tokens) cells[3] = tokens[i];
@@ -838,10 +852,13 @@ function mapRows_(sh, role, named) {
     const loc = cells[1].trim().toLowerCase();
     cells[6] = isOn_(cells[6]) ? 'on' : '';
     if (loc && !cells[2].trim() && !(loc in shown)) shown[loc] = cells[6] === 'on';
+    if (loc && cells[2].trim() && cells[6] === 'on') someLevels[loc] = true;
     if (role !== 'gm') cells[5] = '';
-    out.push({ n: i + 2, cells, loc });
+    out.push({ n: i + 2, cells, loc, level: !!cells[2].trim() });
   });
-  return role === 'gm' ? out : out.filter(r => !r.loc || shown[r.loc]);
+  // A place's levels all show with it, unless some of them are shown on their own (the GM shared
+  // just those floors): then only those do.
+  return role === 'gm' ? out : out.filter(r => !r.loc || (shown[r.loc] && !(r.level && someLevels[r.loc] && r.cells[6] !== 'on')));
 }
 
 // The GM also gets each row's place in the sheet (ns), to edit it by (see place_).
@@ -853,7 +870,11 @@ function mapTable_(sh, role, named) {
   return { d: digest_([rows, ns]), rows, ns };
 }
 
-/* show {location, on} (GM): puts a place on the crew's map, or takes it off */
+/*
+ * show {location, level, on} (GM): puts a place on the crew's map, or takes it off. With level,
+ * that one level of the place: once any level is on, the crew see only the levels that are (see
+ * mapRows_), and turning a level on puts its place on too.
+ */
 function show_(req) {
   const sh = findSheet_(SpreadsheetApp.getActiveSpreadsheet(), 'Map');
   if (!sh) return { ok: false, code: 'missing', error: 'No Map tab.' };
@@ -861,11 +882,20 @@ function show_(req) {
   const cols = mapCols_(grid[0]);
   if (cols[6] < 0) return { ok: false, error: 'Add a "Shown" column to the Map tab.' };
   const want = String(req.location || '').trim().toLowerCase();
-  const i = grid.findIndex((line, j) => j > 0 && String(line[cols[1]]).trim().toLowerCase() === want && !(cols[2] >= 0 && String(line[cols[2]]).trim()));
+  const lvl = String(req.level || '').trim().toLowerCase();
+  const at = l => (cols[2] >= 0 ? String(grid[l][cols[2]]).trim().toLowerCase() : '');
+  const find = level => grid.findIndex((line, j) => j > 0 && String(line[cols[1]]).trim().toLowerCase() === want && at(j) === level);
+  const i = find('');
   if (!want || i < 0) return { ok: false, code: 'missing', error: 'No place called "' + req.location + '" in the Map tab.' };
-  const cell = sh.getRange(i + 1, cols[6] + 1);
-  cell.setNumberFormat('@');
-  cell.setValues([[req.on ? 'on' : '']]);
+  const j = lvl ? find(lvl) : -1;
+  if (lvl && j < 0) return { ok: false, code: 'missing', error: 'No level called "' + req.level + '" in "' + req.location + '".' };
+  const put = n => {
+    const cell = sh.getRange(n + 1, cols[6] + 1);
+    cell.setNumberFormat('@');
+    cell.setValues([[req.on ? 'on' : '']]);
+  };
+  if (j >= 0) put(j);
+  if (j < 0 || req.on) put(i);
   touched_(sh.getName());
   const t = mapTable_(sh, 'gm');
   return { ok: true, tab: sh.getName(), at: Date.now(), d: t.d, rows: t.rows };
@@ -1235,6 +1265,8 @@ const RULES_KINDS = ['move', 'procedure', 'house', 'advance', 'playbook', 'vice'
   'pmove', 'smove', 'pnote', 'renown', 'rule', 'special', 'tag', 'trouble', 'table', 'fate', 'world', 'faction'];
 const SYSTEM_KINDS = ['stat', 'track', 'section', 'choice'];
 const SHEET_KINDS = ['info', 'stat', 'track', 'bond', 'sheet', 'notes', 'jot', 'kit', 'item', 'cargo', 'crew', 'move', 'special', 'advance', 'log', 'state', 'signin'];
+const SESSION_KINDS = ['folder', 'session', 'share', 'note', 'window', 'prompt', 'done', 'rolls'];
+const NPCS_KINDS = ['npc', 'harm', 'crew'];
 const GUARD_NOTE = 'Cybersea: ';
 
 function setUpChecks() {
@@ -1261,6 +1293,9 @@ function guard_(sh) {
     if (kind === 'system') return true;
     if (col('vis')) sh.getRange(2, col('vis'), rows, 1).setDataValidation(list(['crew', 'gm'], true, 'crew (or blank): everyone sees it. gm: only the GM.'));
     return true;
+  }
+  if (kind === 'session' || kind === 'npcs') {
+    sh.getRange(2, 1, rows, 1).setDataValidation(list(kind === 'session' ? SESSION_KINDS : NPCS_KINDS, true, 'A kind the site knows (see README).'));
   }
   if (kind === 'character' || kind === 'ship') {
     sh.getRange(2, 1, rows, 1).setDataValidation(list(SHEET_KINDS, false, 'A kind the site knows (see README).'));

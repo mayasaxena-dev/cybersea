@@ -32,7 +32,7 @@ test('a good deployment passes every check and can be opened', async () => {
 test('a script older than the site needs is called out, in diag and on the site', async () => {
   const old = h.srv.apis[1];
   const p = await run(old.url, KEYS.GM_KEY);
-  assert.match(await p.textContent('.dline.bad'), /older Code\.gs \(version 10; the site needs 11\)/);
+  assert.match(await p.textContent('.dline.bad'), /older Code\.gs \(version 11; the site needs 12\)/);
 
   const q = await h.page();
   await q.goto(`${h.srv.site}/#join=${invite(old.url)}`);

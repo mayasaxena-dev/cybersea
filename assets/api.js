@@ -20,7 +20,7 @@ import { hold } from './hold.js';
 
 // The Code.gs version this site needs (its ping and reads answer {v}). An older deployment is
 // turned away with a note to redeploy: there's nothing to stay compatible with.
-export const API_VERSION = 11;
+export const API_VERSION = 12;
 
 // The most versions a pending change carries for what earlier unconfirmed changes may have left.
 const MAX_ALTS = 20;
@@ -378,7 +378,8 @@ export class GameClient extends Emitter {
     const me = this.me;
     if (this.role !== 'crew' || this.locked || !me) return false;
     const t = String(tab).trim().toLowerCase();
-    return t === 'ship' || t === 'lore' || t === me.toLowerCase();
+    // Session and NPCs: their own notes (and, on Session, that they ran a prompt); Code.gs holds to that.
+    return t === 'ship' || t === 'lore' || t === 'session' || t === 'npcs' || t === me.toLowerCase();
   }
 
   setKey(key) {
