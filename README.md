@@ -177,7 +177,8 @@ session is running.
   **Undo** puts the sheet back. The GM's tab ticks off who has run it.
 - **Folders.** Each session is a folder; the GM can make others ("Vega Station/NPCs"). The
   **Share** buttons on the GM page (NPCs, secrets, notes, clocks), the Map (places, levels,
-  region maps, pictures), Lore, Rules, Crew and the GM's crew tab file something into a folder.
+  region maps, pictures), Lore, Rules, each crew card, and the ⋯ menu on a character's sheet or
+  the ship (next to the Notion embed link) file something into a folder.
   Sharing a place puts it on the crew's map; a level shows on its own; a secret or note goes on
   the Lore page under Revealed; lore shared during a session is marked new until it ends; a
   clock follows the GM's; an NPC's ticked parts (tags, harm, notes) go on the **NPCs** page,
@@ -186,6 +187,10 @@ session is running.
   page shows the same windows. Players can add notes to a folder and edit or delete their own; a
   note goes on the desktop only if the GM opens it. Deleting a lore, NPC, place or level share
   asks whether to take it out of the folder only or everywhere.
+- **The Map app.** The GM's **Map** button puts the map on the desktop: the same interactive
+  map as the Map page, showing only what the crew see (even on the GM's screen). A shared place
+  *is* a place on that map: opening its share brings up the Map app on that place, or inside it
+  at a shared level, for everyone.
 - **Rolls.** The session's rolls sit beside the desktop; when it ends, its folder keeps them.
 
 It all lives in the **Session** and **NPCs** tabs, which the GM's first share makes (script

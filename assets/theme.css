@@ -721,3 +721,12 @@ svg.defs{position:absolute;width:0;height:0;overflow:hidden}
 @keyframes mgoup{from{opacity:0;transform:translateY(8%)}}
 @keyframes mgodown{from{opacity:0;transform:translateY(-8%)}}
 @media (prefers-reduced-motion: reduce){.mlay,.mdrift{transition:none}.mlay.static,.mbob,.fade,.mstage .mworld,#mapcard .card.open{animation:none!important}.mdrift{transform:none}}
+
+/* the Map app on the Session desktop: the crew's map in a window, its place cards inside it */
+.desk .wbody.mapbody{padding:0;position:relative;overflow:auto}
+.mapapp{position:relative;min-height:100%}
+.mapapp .mapmain{padding:8px}
+.mapapp .mtools{margin-bottom:6px}
+.mapapp .mvp{border-color:rgba(62,232,242,.35)}
+.mapapp .mapcard .card.open{position:absolute;z-index:5;top:8px;right:8px;width:min(340px,calc(100% - 16px));max-height:calc(100% - 16px);overflow:auto;margin:0;background:var(--hud);border:1px solid var(--n-dim);box-shadow:0 0 18px rgba(62,232,242,.2);animation:mfade .2s ease}
+.mapapp .mapcard .card.open .rimg img{max-height:200px;object-fit:contain}

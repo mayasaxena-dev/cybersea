@@ -9,6 +9,8 @@
 //   prompt | <action>   | <stamp>           | <session title> the GM ran session-begin, session-end or chapter-end
 //   done   | <action>:<character> | <stamp> |                 that character ran it, for the prompt with that stamp
 //   rolls  | <session title> | <rolls>      |                 the session's rolls, kept when it ended (rollLine)
+//   focus  | <place>    | <level>           |                 the place the Map app shows everyone (the GM opened its share)
+// The window called "map" is the Map app: the crew's map (mapview.js), on the desktop.
 // Ids are logId()s, so they sort by when they were made. The crew write only note and done rows
 // (Code.gs holds to that); the rest is the GM's.
 //
@@ -21,6 +23,7 @@ import { rowKey } from './codec.js';
 export const SESSION_TAB = 'Session';
 export const NPCS_TAB = 'NPCs';
 export const ACTIONS = ['session-begin', 'session-end', 'chapter-end'];
+export const MAP_WIN = 'map';
 // What can be shared, and what the share's ref names (the body is its own text, kept in the row):
 //   place: <place>   level: <place> / <level>   region: <region>   (the Map tab)
 //   lore: <category> / <title>   (the Lore tab; secrets and notes are copied there first)
@@ -68,7 +71,7 @@ export const clampBox = ({ x, y, w, h }) => {
 };
 
 export function parseSession(rows = []) {
-  const s = { folders: [], sessions: [], current: null, items: [], windows: [], prompts: {}, done: {}, rolls: {} };
+  const s = { folders: [], sessions: [], current: null, items: [], windows: [], prompts: {}, done: {}, rolls: {}, focus: null };
   const folders = new Set();
   const addFolder = p => {
     const parts = cleanPath(p).split('/').filter(Boolean);
@@ -93,11 +96,12 @@ export function parseSession(rows = []) {
     } else if (kind === 'prompt' && ACTIONS.includes(low(name))) s.prompts[low(name)] = { stamp: trim(value), title: trim(notes) };
     else if (kind === 'done') s.done[low(name)] = trim(value);
     else if (kind === 'rolls') s.rolls[low(name)] = String(value ?? '');
+    else if (kind === 'focus' && trim(name)) s.focus = { place: trim(name), level: trim(value) };
   }
   s.sessions.sort((a, b) => String(a.start).localeCompare(String(b.start)));
   s.current = [...s.sessions].reverse().find(x => x.start && !x.end) || null;
   s.items.sort((a, b) => a.at - b.at || a.id.localeCompare(b.id));
-  s.windows = s.windows.filter(w => s.items.some(i => i.id === w.id)).sort((a, b) => a.z - b.z);
+  s.windows = s.windows.filter(w => w.id === MAP_WIN || s.items.some(i => i.id === w.id)).sort((a, b) => a.z - b.z);
   s.folders = [...folders].sort((a, b) => a.localeCompare(b));
   return s;
 }
@@ -126,6 +130,7 @@ export function isNewLore(s, category, title) {
 export const shareRow = (id, folder, spec) => ['share', id, cleanPath(folder), formatSpec(spec)];
 export const noteRow = (id, folder, author, text) => ['note', id, cleanPath(folder), formatSpec({ type: 'note', ref: author, body: text })];
 export const windowRow = (id, box, z) => ['window', id, formatBox(clampBox(box)), String(z)];
+export const focusRow = (place, level = '') => ['focus', trim(place), trim(level), ''];
 
 // Where a new window opens: cascading from the top left, so a stack of them stays readable.
 export function nextBox(s) {

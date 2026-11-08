@@ -17,6 +17,7 @@ import { people, whoIs, bondTarget, crewSystem, newCrew, splitTags } from './cre
 import { hold } from './hold.js';
 import { tagsHTML, tagListHTML, addTag, removeTag } from './tags.js';
 import { staticPips } from './cards.js';
+import { openShare } from './share.js';
 
 const SHIP = (document.body.dataset.tab || '').toLowerCase() === 'ship';
 // The ship's crew tab is there when the game has a crew section (named as the System tab has it).
@@ -1041,15 +1042,20 @@ document.addEventListener('keydown', e => {
   }
 });
 
-/* ---------- sheet menu: embed link ---------- */
+/* ---------- sheet menu: embed link, and the GM's Share ---------- */
 function sheetMenu() {
   const o = modal(`
     <div class="prow"><h2>${escTxt(st.info.name || tabName)}</h2><span class="grow"></span><button class="mini" data-close aria-label="Close">×</button></div>
-    <div class="prow"><button class="pbtn" data-s="embed">Copy Notion embed link</button></div>
+    <div class="prow"><button class="pbtn" data-s="embed">Copy Notion embed link</button>${client.role === 'gm' ? `<button class="pbtn" data-s="share">Share with the crew</button>` : ''}</div>
     <div class="status" data-msg></div>`, { label: 'Sheet options' });
   const say = m => { o.querySelector('[data-msg]').textContent = m; };
   o.addEventListener('click', async e => {
     const s = e.target.closest('[data-s]')?.dataset.s;
+    if (s === 'share' && client.role === 'gm') {
+      closeModal();
+      openShare(client, SHIP ? { type: 'ship', title: st.info.name || 'The ship' } : { type: 'crew', ref: tabName, title: st.info.name || tabName });
+      return;
+    }
     if (s === 'embed') {
       const url = new URL(inviteUrl(client.game));
       const link = `${url.origin}${url.pathname}sheet.html?c=${encodeURIComponent(tabName)}${url.hash}`;

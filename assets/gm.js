@@ -64,9 +64,7 @@ const pipsHTML = (id, arr, label) => arr.map((v, j) => `<button class="pip${pipC
 
 /* ---------- views ---------- */
 function crewHTML() {
-  const shares = [...characters().map(n => shareButtonHTML({ type: 'crew', ref: n, title: n }, n)), shareButtonHTML({ type: 'ship', title: 'The ship' }, 'Ship')].join('');
-  return `<div class="prow shares"><span class="lbl">Share a card</span>${shares}</div>
-    <div class="crew">${characters().map(n => crewCardHTML(client, n, { gm: true })).join('')}${shipCardHTML(client, { gm: true })}</div>`;
+  return `<div class="crew">${characters().map(n => crewCardHTML(client, n, { gm: true, share: true })).join('')}${shipCardHTML(client, { gm: true, share: true })}</div>`;
 }
 
 // NPC tags (an npc row's Value): the Rules tab's npc tags as chips linking to them, the rest free text.

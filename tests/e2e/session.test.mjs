@@ -96,24 +96,30 @@ test('the GM shares a place into the session folder: it’s on the crew’s map,
   await p.waitForSelector('.file:has-text("Scrap Town")');
   assert.equal(await p.$('[data-open]'), null);
   await s.click('.file:has-text("Scrap Town")');
+  assert.equal(await s.textContent('[data-open]'), 'Show on the map');
   await s.click('[data-open]');
-  await s.waitForSelector('.desktop .win:has-text("Scrap Town")');
-  await p.waitForSelector('.desktop .win:has-text("Scrap Town")');
-  assert.match(await p.textContent('.desktop .win'), /A town of scrap\.[\s\S]*Level 1[\s\S]*Level 2/, 'the place with its levels');
-  assert.ok(await until(() => p.$('.desktop .win .strips span')), 'its pictures glitch now and then');
+  // The Map app opens on the place, for everyone: the crew's map, even on the GM's screen.
+  for (const x of [s, p]) {
+    await x.waitForSelector('.desktop .win[data-win="map"] .mapcard .card.open:has-text("Scrap Town")');
+    assert.match(await x.textContent('.mapcard .card.open'), /A town of scrap\./);
+  }
+  assert.ok(rowsOf(await sessionRows(), 'focus').some(r => r[1] === 'Scrap Town'));
+  const shown = await s.textContent('.desktop .win[data-win="map"]');
+  assert.doesNotMatch(shown, /Hidden Dock|Dark Vault|Sharks below|Someone is listening/, 'nothing the crew can’t see, even for the GM');
+  assert.equal(await s.$('.mapapp [data-share], .mapapp [data-edit], .mapapp [data-arrange]'), null, 'and none of the GM’s tools');
   assert.equal(await p.$('.desktop [data-wclose]'), null, 'players can’t close it');
   assert.equal(await p.$('.desktop [data-drag]'), null, 'or move it');
 
   // The GM moves it; everyone's follows.
   // Measured in the page in one go: a redraw can swap the element between a find and a measure.
-  const b = await until(() => s.evaluate(() => { const r = document.querySelector('.desktop .win .wbar')?.getBoundingClientRect(); return r?.width ? { x: r.x, y: r.y } : null; }));
+  const b = await until(() => s.evaluate(() => { const r = document.querySelector('.desktop .win[data-win="map"] .wbar')?.getBoundingClientRect(); return r?.width ? { x: r.x, y: r.y } : null; }));
   await s.mouse.move(b.x + 40, b.y + 8);
   await s.mouse.down();
   await s.mouse.move(b.x + 140, b.y + 108, { steps: 5 });
   await s.mouse.up();
   const box = async q => q.$eval('.desktop .win', w => w.style.left);
   assert.match(await box(p), /%$/, 'windows sit where the GM put them');
-  const moved = await until(async () => { const x = rowsOf(await sessionRows(), 'window')[0]?.[2].split(' ')[0]; return x !== '4' && x; });
+  const moved = await until(async () => { const x = rowsOf(await sessionRows(), 'window')[0]?.[2].split(' ')[0]; return x !== '6' && x; });
   assert.ok(moved, 'the move is kept');
   assert.ok(await until(async () => (await box(p)) === `${moved}%`), 'the player’s window moved too');
 
@@ -210,6 +216,8 @@ test('the GM deletes a share from its folder only, or everywhere', async () => {
   const s = await gm('session.html');
   await s.waitForSelector('.file:has-text("Gull Harbor")');
   await s.click('.file:has-text("Gull Harbor")');
+  await s.click('.preview [data-open]');
+  assert.ok(await until(() => s.$('.desktop .win .strips span')), 'its picture glitches now and then');
   await s.click('.preview [data-del]');
   await s.click('[role="dialog"] [data-here]');
   assert.ok(await until(async () => !rowsOf(await sessionRows(), 'share').some(r => r[3] === 'lore: Place / Gull Harbor' || r[3].endsWith('/ Gull Harbor'))));
@@ -266,4 +274,28 @@ test('folders, scene cards, a live clock, and the rolls a session keeps when it 
   await p.waitForSelector('.drolls .klist li:has-text("Spitfire")');
   for (const x of [p, r, s, g]) await x.close();
   assert.deepEqual(h.errors, []);
+});
+
+test('the GM shares a crew card from the card itself, or a sheet from its menu', async () => {
+  const g = await gm('gm.html');
+  await g.waitForSelector('.crewcard');
+  assert.equal(await g.$('text=Share a card'), null, 'no separate row of share buttons');
+  assert.ok(await g.$('.crewcard:has-text("Testa") [data-share*="\\"crew\\""]'), 'each crew card has its own');
+  assert.ok(await g.$('.crewcard[href*="ship.html"] [data-share*="\\"ship\\""]'), 'and so does the ship');
+  await shareTo(g, '.crewcard:has-text("Testa") [data-share]', 'Vega Station');
+  assert.equal(await g.url().includes('gm.html'), true, 'sharing doesn’t follow the card’s link');
+  assert.ok(await until(async () => rowsOf(await sessionRows(), 'share').some(r => r[2] === 'Vega Station' && r[3] === 'crew: Testa')));
+
+  const s = await gm('ship.html');
+  await s.click('[data-act="sheet-menu"]');
+  await s.click('[role="dialog"] [data-s="share"]');
+  await s.waitForSelector('[role="dialog"] [data-go]');
+  await s.selectOption('[role="dialog"] [data-folder]', 'Vega Station');
+  await s.click('[role="dialog"] [data-go]');
+  assert.ok(await until(async () => rowsOf(await sessionRows(), 'share').some(r => r[2] === 'Vega Station' && r[3].startsWith('ship'))));
+
+  const p = await player('sheet.html?c=Testa');
+  await p.click('[data-act="sheet-menu"]');
+  assert.equal(await p.$('[role="dialog"] [data-s="share"]'), null, 'players don’t get Share');
+  for (const x of [g, s, p]) await x.close();
 });

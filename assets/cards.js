@@ -7,6 +7,7 @@ import { pictureHTML } from './pictures.js';
 import { wealth, wealthOf } from './kit.js';
 import { gameRules } from './rules.js';
 import { systemOf, typeOf, sum, SHIP } from './system.js';
+import { shareButtonHTML } from './share.js';
 
 // The game's Rules and System tabs, indexed once per change.
 let seen = null;
@@ -45,7 +46,8 @@ function gmLinesHTML(st, sys) {
     (has(w.t) || has(w.h) ? line('Wealth', `${hoard}-${w.h.toLowerCase()}, ${treasure}-${w.t.toLowerCase()} · ${st.items.length} items`) : '');
 }
 
-export function crewCardHTML(client, name, { gm = false, me = false } = {}) {
+// share: the GM's Share button on the card (share.js).
+export function crewCardHTML(client, name, { gm = false, me = false, share = false } = {}) {
   const rows = client.tab(name).rows;
   const st = parseSheet(rows);
   const R = rulesOf(client);
@@ -55,7 +57,7 @@ export function crewCardHTML(client, name, { gm = false, me = false } = {}) {
   const vice = pipsOf('vice');
   const troubles = section(st, sys.title('troubles'));
   return `<a class="card crewcard" href="${esc(href('sheet.html', client.game, { c: name }))}">
-    <div class="shead">${portrait(client, name, st.info.name || name)}<h2>${escTxt(st.info.name || name)}</h2>${me ? '<span class="pill me">You</span>' : isSignedIn(rows) ? '<span class="pill in">Signed in</span>' : ''}${st.state.downtime ? '<span class="pill">Downtime</span>' : ''}${gm && vice.includes(1) ? `<span class="pill vice">${escTxt(sys.name('vice'))}</span>` : ''}</div>
+    <div class="shead">${portrait(client, name, st.info.name || name)}<h2>${escTxt(st.info.name || name)}</h2>${me ? '<span class="pill me">You</span>' : isSignedIn(rows) ? '<span class="pill in">Signed in</span>' : ''}${st.state.downtime ? '<span class="pill">Downtime</span>' : ''}${gm && vice.includes(1) ? `<span class="pill vice">${escTxt(sys.name('vice'))}</span>` : ''}${share ? `<span class="grow"></span>${shareButtonHTML({ type: 'crew', ref: name, title: st.info.name || name })}` : ''}</div>
     <div class="note">${escTxt([st.info.playbook, st.info.player].filter(Boolean).join(' · '))}</div>
     ${roleRow(st, sys, 'harm', 'harm')}${roleRow(st, sys, 'luck', 'luck')}
     <div class="cc-row cc-stats">${st.stats.map(x => `<span><span class="lbl">${escTxt(x.k)}</span> ${fmt(x.v)}</span>`).join('')}</div>
@@ -66,13 +68,13 @@ export function crewCardHTML(client, name, { gm = false, me = false } = {}) {
   </a>`;
 }
 
-export function shipCardHTML(client, { gm = false } = {}) {
+export function shipCardHTML(client, { gm = false, share = false } = {}) {
   const s = client.tab('Ship');
   if (s.missing) return `<a class="card crewcard" href="${esc(href('ship.html', client.game))}"><h2>Ship</h2><div class="note">Not set up yet.</div></a>`;
   const st = parseSheet(s.rows);
   const sys = systemOf(rulesOf(client), SHIP);
   return `<a class="card crewcard" href="${esc(href('ship.html', client.game))}">
-    <div class="shead">${portrait(client, 'Ship', st.info.name || 'Ship')}<h2>${escTxt(st.info.name || 'Ship')}</h2></div>
+    <div class="shead">${portrait(client, 'Ship', st.info.name || 'Ship')}<h2>${escTxt(st.info.name || 'Ship')}</h2>${share ? `<span class="grow"></span>${shareButtonHTML({ type: 'ship', title: st.info.name || 'The ship' })}` : ''}</div>
     <div class="note">${escTxt(st.info.playbook || '')}</div>
     ${roleRow(st, sys, 'harm', 'harm')}${roleRow(st, sys, 'luck', 'luck')}
     <div class="cc-row cc-stats">${st.stats.map(x => `<span><span class="lbl">${escTxt(x.k)}</span> ${fmt(x.v)}</span>`).join('')}</div>

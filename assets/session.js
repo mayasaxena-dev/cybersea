@@ -6,6 +6,7 @@
 // The GM opens, moves, resizes and closes windows here; anyone signed in can add notes to a
 // folder, and edit or delete their own.
 import { bootstrap } from './games.js';
+import { mountMap } from './mapview.js';
 import { GameClient } from './api.js';
 import { md } from './markup.js';
 import { gameRules, TABS as RULE_TABS } from './rules.js';
@@ -18,7 +19,7 @@ import { parseRoll, rollHTML, ROLLS_TAB } from './rolls.js';
 import { esc, escTxt, modal, closeModal, toast, pageShell, refreshNav, whenIdle, noGame, typingIn } from './core.js';
 import {
   SESSION_TAB, NPCS_TAB, parseSession, itemsIn, subfolders, sessionOf, owedPrompt, refParts, cleanPath, parentOf, baseName,
-  windowRow, noteRow, shareRow, nextBox, topZ, parseNpcs, clampBox,
+  windowRow, noteRow, shareRow, nextBox, topZ, parseNpcs, clampBox, MAP_WIN, focusRow,
 } from './session-model.js';
 import { writeRows } from './share.js';
 
@@ -53,13 +54,14 @@ const gone = '<div class="empty gone"><img class="ico" src="assets/icons/warning
 const mapItem = (row, title = row[2] || row[1] || row[0]) => `${String(row[4]).trim() ? `<div class="rich">${md(row[4])}</div>` : ''}${pictureHTML('Map', row[3], title, 'rimg')}`;
 
 function titleOf(it) {
+  if (it.type === 'map') return 'Map';
   if (it.type === 'note') return `Note from ${it.author || 'someone'}`;
   if (it.type === 'ship') return 'The ship';
   if (it.type === 'lore' || it.type === 'picture' || it.type === 'level') return refParts(it.ref).pop();
   return it.ref || it.type;
 }
 // The desktop's icons (assets/icons): pixel art, in the site's teal.
-const ICONS = { place: 'web', level: 'web', region: 'web', lore: 'file', rule: 'file', npc: 'computer', clock: 'hourglass', crew: 'computer', ship: 'disk', picture: 'photo', scene: 'star1', note: 'message' };
+const ICONS = { map: 'web', place: 'web', level: 'web', region: 'web', lore: 'file', rule: 'file', npc: 'computer', clock: 'hourglass', crew: 'computer', ship: 'disk', picture: 'photo', scene: 'star1', note: 'message' };
 const icon = name => `<img class="ico" src="assets/icons/${name}.svg" alt="">`;
 const iconOf = it => icon(ICONS[it.type] || 'file');
 
@@ -104,15 +106,48 @@ function bodyHTML(it) {
   return gone;
 }
 
+/* ---------- the Map app ----------
+ * The crew's map (mapview.js), in a window: the same interactive map as the Map page, showing
+ * only what the crew see, even to the GM. It's made once and moved into its window at each
+ * render, so the camera stays put. Opening a place's share shows that place on it, for everyone.
+ */
+const mapApp = document.createElement('div');
+mapApp.className = 'mapapp';
+const mapMain = document.createElement('div');
+mapMain.className = 'mapmain';
+const mapDrawer = document.createElement('div');
+mapDrawer.className = 'mapcard';
+mapApp.append(mapMain, mapDrawer);
+let mapView = null;
+let focused = '';
+function placeMap() {
+  const slot = main.querySelector('[data-mapslot]');
+  if (!slot) return;
+  if (!mapView) mapView = mountMap({ client, game, main: mapMain, drawer: mapDrawer, crew: true, embedded: true });
+  slot.replaceWith(mapApp);
+  const f = S.focus ? `${S.focus.place}\n${S.focus.level}` : '';
+  if (f !== focused) { focused = f; if (S.focus) mapView.focus(S.focus.place, S.focus.level); }
+}
+const MAP_ITEM = { type: 'map', ref: 'Map' };
+// The GM opens a place or level's share on the map: the Map app comes up showing it.
+function showOnMap(it) {
+  const [a, b] = refParts(it.ref);
+  setWindows(rows => {
+    const w = S.windows.find(x => x.id === MAP_WIN);
+    return [...withoutWindow(rows, MAP_WIN).filter(r => low(r[0]) !== 'focus'), windowRow(MAP_WIN, w || { x: 6, y: 4, w: 70, h: 80 }, topZ(S)), it.type === 'level' ? focusRow(a, b) : focusRow(it.ref)];
+  });
+  render();
+}
+
 /* ---------- the desktop ---------- */
-const itemOf = id => S.items.find(i => i.id === id);
+const itemOf = id => (id === MAP_WIN ? MAP_ITEM : S.items.find(i => i.id === id));
 function windowHTML(w) {
   const it = itemOf(w.id);
   const gm = isGm();
   return `<section class="win" data-win="${esc(w.id)}" aria-label="${esc(titleOf(it))}">
     <div class="wbar"${gm ? ' data-drag="move"' : ''}><span class="wic" aria-hidden="true">${iconOf(it)}</span><span class="wtitle">${escTxt(titleOf(it))}</span>
       ${gm ? `<button class="wbtn" data-wclose="${esc(w.id)}" title="Close this window for everyone" aria-label="Close">×</button>` : ''}</div>
-    <div class="wbody">${bodyHTML(it)}</div>
+    <div class="wbody${w.id === MAP_WIN ? ' mapbody' : ''}">${w.id === MAP_WIN ? '<div data-mapslot></div>' : bodyHTML(it)}</div>
     ${gm ? '<span class="wgrip" data-drag="size" aria-hidden="true"></span>' : ''}
   </section>`;
 }
@@ -128,9 +163,9 @@ function explorerHTML() {
     here.map(it => `<button class="file${sel === it.id ? ' on' : ''}${S.windows.some(w => w.id === it.id) ? ' open' : ''}" data-sel="${esc(it.id)}"><span class="fic">${iconOf(it)}</span><span>${escTxt(titleOf(it))}</span></button>`).join('');
   const it = here.find(i => i.id === sel);
   const canNote = !!cwd && (isGm() || client.canEdit(SESSION_TAB));
-  const tools = `${isGm() ? '<button class="pbtn" data-act="mkdir">New folder</button>' : ''}${isGm() && cwd ? '<button class="pbtn" data-act="scene">Scene card</button>' : ''}${canNote ? '<button class="pbtn" data-act="note">New note</button>' : ''}`;
+  const tools = `${isGm() ? '<button class="pbtn" data-act="map">Map</button><button class="pbtn" data-act="mkdir">New folder</button>' : ''}${isGm() && cwd ? '<button class="pbtn" data-act="scene">Scene card</button>' : ''}${canNote ? '<button class="pbtn" data-act="note">New note</button>' : ''}`;
   const preview = it ? `<div class="preview"><div class="phead"><b>${escTxt(titleOf(it))}</b><span class="grow"></span>
-      ${isGm() ? `<button class="pbtn" data-open="${esc(it.id)}">${S.windows.some(w => w.id === it.id) ? 'Bring to front' : 'Open for everyone'}</button>` : ''}
+      ${isGm() ? `<button class="pbtn" data-open="${esc(it.id)}">${it.type === 'place' || it.type === 'level' ? 'Show on the map' : S.windows.some(w => w.id === it.id) ? 'Bring to front' : 'Open for everyone'}</button>` : ''}
       ${mine(it) ? `<button class="pbtn" data-edit="${esc(it.id)}">Edit</button>` : ''}
       ${isGm() || mine(it) ? `<button class="pbtn del" data-del="${esc(it.id)}">${icon('trash')}Delete</button>` : ''}</div>
       <div class="pbody">${bodyHTML(it)}</div></div>` : '';
@@ -231,6 +266,7 @@ function render() {
     if (seen && !seen.has(w.id)) el.classList.add('fresh');
   }
   seen = new Set(S.windows.map(w => w.id));
+  placeMap();
   requestAnimationFrame(glitchAll);
 }
 
@@ -268,8 +304,8 @@ function glitch(img) {
   box.classList.add('glitchy');
   box.append(strips);
 }
-const glitchAll = () => main.querySelectorAll('.desktop .wbody img').forEach(glitch);
-main.addEventListener('load', e => { if (e.target.matches?.('.desktop .wbody img')) glitch(e.target); }, true);
+const glitchAll = () => main.querySelectorAll('.desktop .wbody img').forEach(img => { if (!img.closest('.mapapp')) glitch(img); });
+main.addEventListener('load', e => { if (e.target.matches?.('.desktop .wbody img') && !e.target.closest('.mapapp')) glitch(e.target); }, true);
 
 const busy = () => !!drag || typingIn(main) || !!document.getElementById('overlay');
 const later = whenIdle(main, busy);
@@ -381,12 +417,13 @@ function del(it) {
 }
 
 main.addEventListener('click', e => {
+  if (e.target.closest('.mapapp')) return; // the map's own clicks
   const cd = e.target.closest('[data-cd]');
   if (cd) { cwd = cd.dataset.cd; sel = ''; render(); return; }
   const s = e.target.closest('[data-sel]');
   if (s) { sel = sel === s.dataset.sel ? '' : s.dataset.sel; render(); return; }
   const op = e.target.closest('[data-open]');
-  if (op && isGm()) { openWindow(op.dataset.open); return; }
+  if (op && isGm()) { const it = itemOf(op.dataset.open); if (it && (it.type === 'place' || it.type === 'level')) showOnMap(it); else openWindow(op.dataset.open); return; }
   const cl = e.target.closest('[data-wclose]');
   if (cl && isGm()) { setWindows(rows => withoutWindow(rows, cl.dataset.wclose)); render(); return; }
   const ed = e.target.closest('[data-edit]');
@@ -399,6 +436,7 @@ main.addEventListener('click', e => {
   if (act === 'note') editNote(null);
   if (act === 'scene' && isGm()) sceneCard();
   if (act === 'mkdir' && isGm()) mkdir();
+  if (act === 'map' && isGm()) openWindow(MAP_WIN);
 });
 
 // The GM drags a window by its title bar, or resizes it by its corner; everyone's desktop follows

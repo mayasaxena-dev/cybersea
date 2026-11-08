@@ -1301,7 +1301,7 @@ const RULES_KINDS = ['move', 'procedure', 'house', 'advance', 'playbook', 'vice'
   'pmove', 'smove', 'pnote', 'renown', 'rule', 'special', 'tag', 'trouble', 'table', 'fate', 'world', 'faction'];
 const SYSTEM_KINDS = ['stat', 'track', 'section', 'choice'];
 const SHEET_KINDS = ['info', 'stat', 'track', 'bond', 'sheet', 'notes', 'jot', 'kit', 'item', 'cargo', 'crew', 'move', 'special', 'advance', 'log', 'state', 'signin'];
-const SESSION_KINDS = ['folder', 'session', 'share', 'note', 'window', 'prompt', 'done', 'rolls'];
+const SESSION_KINDS = ['folder', 'session', 'share', 'note', 'window', 'prompt', 'done', 'rolls', 'focus'];
 const NPCS_KINDS = ['npc', 'harm', 'crew'];
 const GUARD_NOTE = 'Cybersea: ';
 
