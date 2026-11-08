@@ -516,66 +516,108 @@ details.orig summary{cursor:pointer;font:600 11px/1.4 "Chakra Petch",sans-serif;
 .rmanual .rdie{width:48px;text-align:center}
 .rbody{display:flex;flex-direction:column;gap:8px;min-height:0}
 
-/* ---------- the Session page: a Y2K-era desktop (session.html) ---------- */
+/* ---------- the Session page: cyberspace (session.html) ----------
+   Always dark, in the look of the Vega Server map: neon cyan line art with a magenta split, HUD
+   panels with cut corners, and a grid running off into the distance behind the windows. */
 .glinks a.live{color:var(--green)}
 .glinks a.live::after{content:"";display:inline-block;width:6px;height:6px;margin-left:5px;border-radius:50%;background:currentColor;vertical-align:1px;box-shadow:0 0 6px currentColor}
-body.y2k{--w-face:#c0c7c8;--w-hi:#fff;--w-lo:#7a8a8c;--w-dk:#000;--w-text:#000;--w-desk:#06363b;--w-bar1:#00454b;--w-bar2:#00a3ad;--w-sel:#007c86;--g1:#ff3f8a;--g2:#27dfe6}
-body.y2k #app{max-width:none;padding:0 12px 24px}
-.desk{font:13px/1.4 Tahoma,Verdana,"Segoe UI",sans-serif;color:var(--w-text)}
-.sbanner{display:flex;align-items:center;gap:8px;margin:4px 0 8px;padding:5px 10px;background:linear-gradient(90deg,#021d20,#00454b 60%,#007c86);color:#fff;font:700 12px/1.2 Tahoma,sans-serif;letter-spacing:.08em;border:2px outset #5fb8bf}
-.sdot{width:10px;height:10px;border-radius:50%;background:#555;border:1px solid #fff}
-.sdot.on{background:#39ff6a;box-shadow:0 0 6px #39ff6a}
-.prompt{display:flex;flex-wrap:wrap;align-items:center;gap:8px;margin:0 0 8px;padding:8px 10px;background:#ffffe1;border:1px solid #000;color:#000}
-.dwrap{display:grid;grid-template-columns:260px minmax(0,1fr) 240px;gap:8px;align-items:start}
+body.cyber{
+  color-scheme:dark;
+  --bg:#0b0c0e;--panel:#0e141b;--panel2:#141c25;--line:#212d3a;--text:#d5e1eb;--muted:#7b8c9d;
+  --cyan:#27dfe6;--pink:#ff3f8a;--purple:#a26fcf;--blue:#5f8dff;--green:#46d67e;--amber:#ffc53d;--red:#ff4d5f;--blood:#e8384f;
+  --s1:#e8384f;--s2:#d4ad3b;--s3:#5aa2ff;--s4:#ff8a1f;--s5:#2fd1c0;--s6:#ff5ca8;
+  --skull:var(--text);--gold:#f59b12;--ascii:rgba(80,200,255,.08);--glow:8px;--shadow:0 10px 30px rgba(0,0,0,.5);
+  --n:#3ee8f2;--n-dim:#2a9aa3;--n-soft:#9cd4ea;--g1:#ff3fd2;--g2:#3ee8f2;--hud:rgba(9,13,17,.88);--hud2:rgba(62,232,242,.07);--gridline:rgba(200,210,220,.22);
+  background:var(--bg);
+}
+body.cyber #app{max-width:none;padding:0 12px 24px}
+.desk{font:14px/1.45 "IBM Plex Sans",system-ui,sans-serif;color:var(--text)}
+.desk h2,.desk h3,.desk .wtitle,.sbanner,.desk .pbtn{font-family:"Chakra Petch",system-ui,sans-serif}
+
+/* the banner: hazard stripes, and the title split like the map's */
+.sbanner{position:relative;display:flex;align-items:center;gap:12px;margin:4px 0 10px;padding:8px 14px 8px 44px;color:var(--n);font-weight:700;font-size:13px;letter-spacing:.18em;text-transform:uppercase;
+  background:linear-gradient(90deg,var(--hud2),transparent 70%);border:1px solid var(--n-dim);clip-path:polygon(0 0,calc(100% - 14px) 0,100% 14px,100% 100%,0 100%)}
+.sbanner::before{content:"";position:absolute;left:0;top:0;bottom:0;width:30px;background:repeating-linear-gradient(-45deg,var(--n) 0 5px,transparent 5px 10px);opacity:.8}
+.sbanner .gtext{font-size:15px}
+.sbanner span:last-child{color:var(--n-soft);letter-spacing:.1em}
+.sdot{width:9px;height:9px;background:#333;border:1px solid var(--n-dim);transform:rotate(45deg)}
+.sdot.on{background:var(--n);box-shadow:0 0 8px var(--n)}
+.prompt{display:flex;flex-wrap:wrap;align-items:center;gap:10px;margin:0 0 10px;padding:9px 14px;color:var(--text);background:rgba(255,63,210,.08);border:1px solid var(--g1);box-shadow:0 0 12px rgba(255,63,210,.25) inset}
+.prompt b{color:var(--g1)}
+.dwrap{display:grid;grid-template-columns:270px minmax(0,1fr) 250px;gap:10px;align-items:start}
 @media (max-width:900px){.dwrap{grid-template-columns:1fr}.desktop{min-height:70vh}}
-.desk .win{background:var(--w-face);color:var(--w-text);border:2px solid;border-color:var(--w-hi) var(--w-dk) var(--w-dk) var(--w-hi);box-shadow:inset -1px -1px var(--w-lo),inset 1px 1px #dfdfdf;display:flex;flex-direction:column;min-width:0}
-.desk .wbar{display:flex;align-items:center;gap:6px;padding:3px 4px 3px 6px;background:linear-gradient(90deg,var(--w-bar1),var(--w-bar2));color:#fff;font-weight:700;user-select:none}
+
+/* panels: a dark glass plate with a neon edge and one cut corner */
+.desk .win{position:relative;display:flex;flex-direction:column;min-width:0;background:var(--hud);color:var(--text);
+  clip-path:polygon(0 0,calc(100% - 18px) 0,100% 18px,100% 100%,14px 100%,0 calc(100% - 14px));
+  box-shadow:inset 0 0 0 1px var(--n-dim)}
+.desk .win::before{content:"";position:absolute;inset:0;pointer-events:none;z-index:2;
+  background:linear-gradient(var(--n),var(--n)) top right/26px 1px no-repeat,linear-gradient(var(--n),var(--n)) bottom left/20px 1px no-repeat;
+  clip-path:inherit}
+.desk .win::after{content:"";position:absolute;right:0;top:0;width:26px;height:26px;pointer-events:none;z-index:2;background:linear-gradient(225deg,transparent 12px,var(--n) 12px,var(--n) 13px,transparent 13px)}
+.desk .wbar{display:flex;align-items:center;gap:8px;padding:7px 24px 6px 10px;color:var(--n);font-weight:700;font-size:13px;letter-spacing:.12em;text-transform:uppercase;user-select:none;
+  border-bottom:1px solid rgba(62,232,242,.35);background:linear-gradient(90deg,var(--hud2),transparent)}
+.desk .wbar::after{content:"////";color:var(--n-dim);letter-spacing:1px;font-weight:400}
 .desk .wbar[data-drag]{cursor:move}
 .desk .wtitle{flex:1;min-width:0;overflow:hidden;text-overflow:ellipsis;white-space:nowrap}
-.desk .wic{width:16px;display:flex;justify-content:center}
-.desk .ico{width:16px;height:16px;object-fit:contain;flex:none}
-.desk .wbar .ico{filter:brightness(0) invert(1)}
-.desk .pbtn .ico{width:13px;height:13px;margin-right:4px;vertical-align:-2px}
-.desk .gone{display:flex;align-items:center;gap:6px}
-.desk .wbtn{width:20px;height:18px;padding:0;line-height:14px;background:var(--w-face);color:#000;border:2px solid;border-color:var(--w-hi) var(--w-dk) var(--w-dk) var(--w-hi);font-weight:700;cursor:pointer}
-.desk .wbtn:active{border-color:var(--w-dk) var(--w-hi) var(--w-hi) var(--w-dk)}
-.desk .wbody{flex:1;overflow:auto;padding:8px;background:#fff;margin:3px;border:2px solid;border-color:var(--w-lo) var(--w-hi) var(--w-hi) var(--w-lo)}
-.desk .wbody .note,.desk .note{color:#444}
-.desk .rich a{color:#00e}
-.desktop{position:relative;min-height:72vh;background:var(--w-desk);border:2px solid;border-color:var(--w-lo) var(--w-hi) var(--w-hi) var(--w-lo);overflow:hidden}
-.desktop .win{position:absolute;min-width:140px;min-height:90px}
-.dempty{position:absolute;inset:auto 0 38%;display:flex;flex-direction:column;align-items:center;gap:10px;color:#9fe3e8;font-style:italic}
-.dempty .ico{width:56px;height:56px;filter:brightness(0) invert(1) drop-shadow(-2px 0 var(--g1)) drop-shadow(2px 0 var(--g2));opacity:.85}
-.wgrip{position:absolute;right:1px;bottom:1px;width:14px;height:14px;cursor:nwse-resize;background:linear-gradient(135deg,transparent 50%,var(--w-lo) 50%,var(--w-lo) 60%,transparent 60%,transparent 70%,var(--w-lo) 70%,var(--w-lo) 80%,transparent 80%)}
-.explorer .addr{margin:3px;padding:2px 6px;background:#fff;border:2px solid;border-color:var(--w-lo) var(--w-hi) var(--w-hi) var(--w-lo);font-family:"Courier New",monospace;font-size:12px;overflow:hidden;text-overflow:ellipsis;white-space:nowrap}
-.explorer .files{display:flex;flex-direction:column;margin:3px;padding:2px;background:#fff;border:2px solid;border-color:var(--w-lo) var(--w-hi) var(--w-hi) var(--w-lo);max-height:40vh;overflow:auto}
-.explorer .file{display:flex;align-items:center;gap:6px;padding:2px 4px;border:1px dotted transparent;background:none;text-align:left;cursor:pointer;color:#000}
-.explorer .file:hover{border-color:#888}
-.explorer .file.on{background:var(--w-sel);color:#fff}
-.explorer .file.open span:last-child{text-decoration:underline dotted}
-.explorer .file.on .ico{filter:brightness(0) invert(1)}
-.explorer .file.live span:last-child::after{content:" ●";color:#090}
-.explorer .fic{width:18px;display:flex;justify-content:center}
-.desk .pbtn{background:var(--w-face);color:#000;border:2px solid;border-color:var(--w-hi) var(--w-dk) var(--w-dk) var(--w-hi);border-radius:0;padding:2px 10px;font:12px Tahoma,sans-serif;box-shadow:none;text-transform:none;letter-spacing:0}
-.desk .pbtn:active{border-color:var(--w-dk) var(--w-hi) var(--w-hi) var(--w-dk)}
-.desk .pbtn.primary{font-weight:700;outline:1px solid #000}
-.explorer .tools{margin:3px;flex-wrap:wrap;gap:4px}
-.explorer .preview{margin:3px;background:#fff;border:2px solid;border-color:var(--w-lo) var(--w-hi) var(--w-hi) var(--w-lo)}
-.explorer .phead{display:flex;flex-wrap:wrap;align-items:center;gap:4px;padding:4px;background:#e8e8e8;border-bottom:1px solid #999}
-.explorer .pbody{padding:6px;max-height:40vh;overflow:auto}
-.desk .cnt{color:#555;font-size:11px}
+.desk .wic{width:18px;display:flex;justify-content:center}
+.desk .ico{width:18px;height:18px;object-fit:contain;flex:none}
+.desk .wbtn{order:3;width:22px;height:22px;padding:0;line-height:18px;background:transparent;color:var(--n);border:1px solid var(--n-dim);font:700 14px/18px "Chakra Petch",sans-serif;cursor:pointer}
+.desk .wbtn:hover{background:var(--n);color:#000}
+.desk .wbody{flex:1;overflow:auto;padding:12px 14px}
+.desk .wbody .note,.desk .note{color:var(--n-soft)}
+.desk .rich a{color:var(--n)}
+.desk .gone{display:flex;align-items:center;gap:8px;color:var(--n-soft)}
+
+/* the desktop: a grid tunnel, floor and ceiling running off to a far wall */
+.desktop{position:relative;min-height:72vh;overflow:hidden;perspective:520px;perspective-origin:50% 50%;
+  background:linear-gradient(var(--gridline) 1px,transparent 1px) 0 0/48px 48px,linear-gradient(90deg,var(--gridline) 1px,transparent 1px) 0 0/48px 48px,#0d0d0d;
+  box-shadow:inset 0 0 0 1px #333,inset 0 0 120px 40px #000}
+.desktop::before{content:"";position:absolute;left:-60%;right:-60%;height:70%;pointer-events:none;z-index:0;
+  background-image:linear-gradient(var(--gridline) 1px,transparent 1px),linear-gradient(90deg,var(--gridline) 1px,transparent 1px);background-size:56px 56px}
+.desktop::before{bottom:-12%;transform:rotateX(72deg);transform-origin:50% 100%;
+  -webkit-mask-image:linear-gradient(to top,#000 30%,transparent);mask-image:linear-gradient(to top,#000 30%,transparent)}
+.desktop::after{content:"";position:absolute;inset:0;pointer-events:none;z-index:0;
+  background:radial-gradient(ellipse at 50% 50%,transparent 30%,rgba(0,0,0,.65) 100%),repeating-linear-gradient(0deg,rgba(0,0,0,.22) 0 1px,transparent 1px 3px)}
+.desktop .win{position:absolute;z-index:1;min-width:150px;min-height:90px;transform:translateZ(0)}
+.dempty{position:absolute;inset:auto 0 42%;z-index:1;display:flex;flex-direction:column;align-items:center;gap:12px;color:var(--n-soft);font:600 13px "Chakra Petch",sans-serif;letter-spacing:.2em;text-transform:uppercase}
+.dempty .ico{width:60px;height:60px;filter:drop-shadow(-2px 0 var(--g1)) drop-shadow(2px 0 var(--g2))}
+.wgrip{position:absolute;right:3px;bottom:3px;width:14px;height:14px;z-index:3;cursor:nwse-resize;background:linear-gradient(135deg,transparent 55%,var(--n) 55%,var(--n) 62%,transparent 62%,transparent 75%,var(--n) 75%,var(--n) 82%,transparent 82%)}
+
+/* the file browser */
+.explorer .addr{margin:8px 8px 4px;padding:4px 8px;color:var(--n);background:rgba(0,0,0,.5);border:1px solid rgba(62,232,242,.3);font:12px/1.4 "IBM Plex Mono",ui-monospace,monospace;overflow:hidden;text-overflow:ellipsis;white-space:nowrap}
+.explorer .addr::before{content:"> ";color:var(--g1)}
+.explorer .files{display:flex;flex-direction:column;gap:1px;margin:4px 8px;max-height:40vh;overflow:auto}
+.explorer .file{display:flex;align-items:center;gap:8px;padding:4px 6px;border:0;border-left:2px solid transparent;background:none;text-align:left;cursor:pointer;color:var(--text);font:inherit}
+.explorer .file:hover{background:var(--hud2);border-left-color:var(--n-dim)}
+.explorer .file.on{background:rgba(62,232,242,.16);border-left-color:var(--n);color:#fff}
+.explorer .file.open span:last-child{text-decoration:underline dotted var(--n-dim)}
+.explorer .file.live span:last-child::after{content:" ◆";color:var(--n);text-shadow:0 0 6px var(--n)}
+.explorer .fic{width:20px;display:flex;justify-content:center}
+.explorer .tools{margin:6px 8px 8px;flex-wrap:wrap;gap:6px}
+.explorer .preview{margin:4px 8px 10px;border-top:1px solid rgba(62,232,242,.35);background:rgba(0,0,0,.35)}
+.explorer .phead{display:flex;flex-wrap:wrap;align-items:center;gap:6px;padding:8px 6px;color:var(--n)}
+.explorer .pbody{padding:4px 8px 10px;max-height:40vh;overflow:auto}
+
+/* buttons: slanted neon outlines */
+.desk .pbtn{display:inline-flex;align-items:center;background:transparent;color:var(--n);border:1px solid var(--n-dim);border-radius:0;padding:4px 14px;font-size:12px;font-weight:600;letter-spacing:.1em;text-transform:uppercase;box-shadow:none;
+  clip-path:polygon(0 0,100% 0,100% calc(100% - 7px),calc(100% - 7px) 100%,0 100%)}
+.desk .pbtn:hover{background:var(--hud2);border-color:var(--n)}
+.desk .pbtn.primary{background:var(--n);color:#031014;border-color:var(--n)}
+.desk .pbtn.primary:hover{box-shadow:0 0 14px var(--n)}
+.desk .pbtn.del{color:var(--g1);border-color:var(--g1)}
+.desk .pbtn .ico{width:14px;height:14px;margin-right:6px}
+.desk .cnt{color:var(--n-soft);font-size:11px;letter-spacing:.08em}
 .drolls .rlist,.drolls .klist{list-style:none;margin:0;padding:0}
-.drolls .klist li{padding:3px 0;border-bottom:1px dotted #999}
-.drolls .rroll{color:#000}
-.desk .scene h3{margin:6px 0;font:700 22px/1.2 "Times New Roman",serif}
+.drolls .klist li{padding:4px 0;border-bottom:1px dashed rgba(62,232,242,.25)}
+.desk .scene h3{margin:4px 0 8px;color:var(--n);font-size:24px;line-height:1.15;letter-spacing:.04em;text-shadow:-1px 0 var(--g1),1px 0 var(--g2)}
 .desk .clock .pips{font-size:20px}
 .desk .rimg.big img{max-width:100%}
 .desk .crew{display:block}
-.desk .crewcard{color:var(--text)}
-.desk .empty{color:#555}
+.desk .empty{color:var(--n-soft)}
 
-/* Glitches, for the cyberpunk feel: an RGB split on titles, a burst of slices now and then on the
-   banner, a window glitching in when the GM opens it, and pictures splitting on hover. */
+/* Glitches: an RGB split on titles, a burst of slices now and then on the banner, a window
+   glitching in when the GM opens it, and pictures tearing and splitting. */
 .desk .wtitle,.sbanner .gtext{text-shadow:-1px 0 var(--g1),1px 0 var(--g2)}
 .sbanner .gtext{position:relative;display:inline-block}
 .sbanner .gtext::before,.sbanner .gtext::after{content:attr(data-text);position:absolute;inset:0;opacity:0;pointer-events:none}
@@ -588,14 +630,13 @@ body.y2k #app{max-width:none;padding:0 12px 24px}
   96%{opacity:.9;clip-path:inset(30% 0 45% 0);transform:translate(-2px,0)}
   97%{opacity:.9;clip-path:inset(75% 0 5% 0);transform:translate(2px,-1px)}
 }
-.desktop::after{content:"";position:absolute;inset:0;pointer-events:none;z-index:0;background:repeating-linear-gradient(0deg,rgba(0,0,0,.18) 0 1px,transparent 1px 3px)}
 .desktop .win.fresh{animation:g-open .32s steps(1)}
 @keyframes g-open{
-  0%{clip-path:inset(0 0 85% 0);transform:translate(-6px,0);filter:drop-shadow(-3px 0 var(--g1)) drop-shadow(3px 0 var(--g2))}
-  25%{clip-path:inset(40% 0 30% 0);transform:translate(5px,0);filter:drop-shadow(3px 0 var(--g1)) drop-shadow(-3px 0 var(--g2))}
-  50%{clip-path:inset(10% 0 0 0);transform:translate(-3px,0);filter:drop-shadow(-2px 0 var(--g1)) drop-shadow(2px 0 var(--g2))}
-  75%{clip-path:none;transform:translate(1px,0);filter:none}
-  100%{clip-path:none;transform:none;filter:none}
+  0%{opacity:.6;transform:translate(-6px,0);filter:drop-shadow(-3px 0 var(--g1)) drop-shadow(3px 0 var(--g2))}
+  25%{opacity:.3;transform:translate(5px,0);filter:drop-shadow(3px 0 var(--g1)) drop-shadow(-3px 0 var(--g2))}
+  50%{opacity:.9;transform:translate(-3px,0);filter:drop-shadow(-2px 0 var(--g1)) drop-shadow(2px 0 var(--g2))}
+  75%{opacity:1;transform:translate(1px,0);filter:none}
+  100%{opacity:1;transform:translateZ(0);filter:none}
 }
 .desk .wbody .rimg img{transform:translateZ(0)}
 .desk .wbody .rimg:hover img{filter:url(#rgb-split)}
@@ -610,3 +651,4 @@ svg.defs{position:absolute;width:0;height:0;overflow:hidden}
   .desk .strips{display:none}
   .sbanner .gtext::before,.sbanner .gtext::after,.desktop .win.fresh{animation:none}
 }
+@media (max-width:600px){.sbanner{font-size:11px;letter-spacing:.1em}.sbanner .gtext{font-size:12px}}
