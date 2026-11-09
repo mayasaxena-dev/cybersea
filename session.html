@@ -1,0 +1,29 @@
+<!doctype html>
+<html lang="en">
+<head>
+<meta charset="utf-8">
+<meta http-equiv="Content-Security-Policy" content="default-src 'self'; script-src 'self'; style-src 'self' https://fonts.googleapis.com; font-src https://fonts.gstatic.com; img-src 'self' https: data: blob:; connect-src 'self' https: http://127.0.0.1:* http://localhost:*; object-src 'none'; base-uri 'self'; form-action 'self'">
+<meta name="viewport" content="width=device-width,initial-scale=1">
+<title>Session · Cybersea</title>
+<link rel="icon" type="image/svg+xml" href="assets/icons/computer.svg">
+<link rel="apple-touch-icon" href="assets/icons/apple-touch-icon.png">
+<link rel="preconnect" href="https://fonts.googleapis.com">
+<link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+<link href="https://fonts.googleapis.com/css2?family=Chakra+Petch:wght@500;600;700&family=IBM+Plex+Sans:ital,wght@0,400;0,600;1,400&display=swap" rel="stylesheet">
+<link rel="stylesheet" href="assets/theme.css">
+</head>
+<body class="cyber">
+<div id="app"></div>
+<!-- The RGB split pictures get on hover (theme.css: #rgb-split). -->
+<svg class="defs" width="0" height="0" aria-hidden="true" focusable="false">
+  <filter id="rgb-split" color-interpolation-filters="sRGB">
+    <feOffset in="SourceGraphic" dx="3" dy="1" result="a"/>
+    <feComponentTransfer in="a" result="red"><feFuncR type="identity"/><feFuncG type="discrete" tableValues="0"/><feFuncB type="discrete" tableValues="0"/></feComponentTransfer>
+    <feOffset in="SourceGraphic" dx="-3" dy="-1" result="b"/>
+    <feComponentTransfer in="b" result="cyan"><feFuncR type="discrete" tableValues="0"/><feFuncG type="identity"/><feFuncB type="identity"/></feComponentTransfer>
+    <feBlend in="red" in2="cyan" mode="screen"/>
+  </filter>
+</svg>
+<script type="module" src="assets/session.js"></script>
+</body>
+</html>

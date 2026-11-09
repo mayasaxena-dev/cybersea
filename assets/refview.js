@@ -53,8 +53,8 @@ export function recordHTML(r, open = false) {
   }
   const meta = r.kind === 'table' ? metaLine(r) : '';
   const body = (r.text.trim() ? md(r.text) : '') + origHTML(r);
-  if (!body) return `<div class="refline"><b>${escTxt(r.name)}</b>${meta ? ` <span class="cnt">${escTxt(meta)}</span>` : ''}</div>`;
-  return `<details class="move"${open ? ' open' : ''}><summary><span class="mn">${escTxt(r.name)}</span>${meta ? `<span class="cnt">${escTxt(meta)}</span>` : ''}</summary><div class="mbody">${body}</div></details>`;
+  if (!body) return `<div class="refline" data-rec="${r.i}"><b>${escTxt(r.name)}</b>${meta ? ` <span class="cnt">${escTxt(meta)}</span>` : ''}</div>`;
+  return `<details class="move" data-rec="${r.i}"${open ? ' open' : ''}><summary><span class="mn">${escTxt(r.name)}</span>${meta ? `<span class="cnt">${escTxt(meta)}</span>` : ''}</summary><div class="mbody">${body}</div></details>`;
 }
 
 function grouped(recs, open) {

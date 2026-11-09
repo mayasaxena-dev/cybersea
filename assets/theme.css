@@ -410,6 +410,30 @@ main{padding-top:14px}
 .crew{display:grid;grid-template-columns:repeat(auto-fill,minmax(260px,1fr));gap:14px;margin-bottom:14px}
 a.crewcard{display:grid;align-content:start;gap:8px;color:var(--text);text-decoration:none;margin:0}
 a.crewcard:hover{border-color:var(--cyan)}
+/* Loading: the word tears into magenta and cyan slices that jump sideways, while a scan line
+   sweeps the card. Still for reduced motion. */
+.gload{position:relative;display:inline-block;font:600 13px "Chakra Petch",sans-serif;letter-spacing:.3em;text-transform:uppercase;color:var(--cyan,#3ee8f2);
+  text-shadow:-1px 0 var(--g1,#ff3fd2),1px 0 var(--g2,#3ee8f2);animation:g-jit 2.4s steps(1) infinite}
+.gload::before,.gload::after{content:attr(data-text);position:absolute;inset:0;pointer-events:none}
+.gload::before{color:var(--g1,#ff3fd2);animation:g-tear 1.1s steps(1) infinite}
+.gload::after{color:var(--g2,#3ee8f2);animation:g-tear 1.1s steps(1) .18s infinite reverse}
+@keyframes g-tear{
+  0%,100%{clip-path:inset(0 0 100% 0);transform:none}
+  10%{clip-path:inset(8% 0 62% 0);transform:translate(-4px,0)}
+  22%{clip-path:inset(58% 0 12% 0);transform:translate(5px,0)}
+  34%{clip-path:inset(30% 0 48% 0);transform:translate(-2px,0)}
+  46%{clip-path:inset(0 0 100% 0);transform:none}
+  62%{clip-path:inset(72% 0 4% 0);transform:translate(3px,0)}
+  74%{clip-path:inset(18% 0 70% 0);transform:translate(-5px,0)}
+  86%{clip-path:inset(0 0 100% 0);transform:none}
+}
+@keyframes g-jit{0%,88%,100%{transform:none;opacity:1}90%{transform:translate(2px,0) skewX(-12deg);opacity:.7}93%{transform:translate(-3px,0);opacity:1}96%{transform:translate(1px,0) skewX(8deg)}}
+a.crewcard.loading{position:relative;overflow:hidden;min-height:120px}
+a.crewcard.loading .gwrap{display:flex;align-items:center;justify-content:center;flex:1;padding:18px 0}
+a.crewcard.loading::after{content:"";position:absolute;left:0;right:0;top:0;height:28%;pointer-events:none;
+  background:linear-gradient(to bottom,transparent,rgba(62,232,242,.14) 70%,rgba(62,232,242,.5) 98%,transparent);animation:g-scan 1.6s linear infinite}
+@keyframes g-scan{from{transform:translateY(-100%)}to{transform:translateY(400%)}}
+@media (prefers-reduced-motion:reduce){.gload,.gload::before,.gload::after,a.crewcard.loading::after{animation:none}.gload::before,.gload::after{display:none}}
 .cc-row{display:flex;align-items:center;gap:6px 8px;flex-wrap:wrap}
 .cc-row .lbl{min-width:44px}
 .cc-stats{gap:6px 12px;font:600 13px/1 "Chakra Petch",sans-serif}
@@ -472,8 +496,7 @@ a.pbtn{display:inline-block;text-decoration:none}
 .levels .cats{margin:0}
 details.orig{margin-top:8px;padding-top:6px;border-top:1px dashed var(--line);color:var(--muted);font-size:.92em}
 details.orig summary{cursor:pointer;font:600 11px/1.4 "Chakra Petch",sans-serif;letter-spacing:.12em;text-transform:uppercase}
-.loc .mapon{margin-left:auto}
-.loc .mapon.on{color:var(--bg);background:var(--cyan);border-color:var(--cyan)}
+.loc .mapshow{margin-left:auto}
 /* the GM's map editor */
 .field[hidden]{display:none}
 .panel .rimg img{max-height:260px;object-fit:contain}
@@ -515,3 +538,235 @@ details.orig summary{cursor:pointer;font:600 11px/1.4 "Chakra Petch",sans-serif;
 .rmanual .rstat{flex:1;min-width:0}
 .rmanual .rdie{width:48px;text-align:center}
 .rbody{display:flex;flex-direction:column;gap:8px;min-height:0}
+
+/* ---------- the Session page: cyberspace (session.html) ----------
+   Always dark, in the look of the Vega Server map: neon cyan line art with a magenta split, HUD
+   panels with cut corners, and a grid running off into the distance behind the windows. */
+.glinks a.live{color:var(--green)}
+.glinks a.live::after{content:"";display:inline-block;width:6px;height:6px;margin-left:5px;border-radius:50%;background:currentColor;vertical-align:1px;box-shadow:0 0 6px currentColor}
+body.cyber{
+  color-scheme:dark;
+  --bg:#0b0c0e;--panel:#0e141b;--panel2:#141c25;--line:#212d3a;--text:#d5e1eb;--muted:#7b8c9d;
+  --cyan:#27dfe6;--pink:#ff3f8a;--purple:#a26fcf;--blue:#5f8dff;--green:#46d67e;--amber:#ffc53d;--red:#ff4d5f;--blood:#e8384f;
+  --s1:#e8384f;--s2:#d4ad3b;--s3:#5aa2ff;--s4:#ff8a1f;--s5:#2fd1c0;--s6:#ff5ca8;
+  --skull:var(--text);--gold:#f59b12;--ascii:rgba(80,200,255,.08);--glow:8px;--shadow:0 10px 30px rgba(0,0,0,.5);
+  --n:#3ee8f2;--n-dim:#2a9aa3;--n-soft:#9cd4ea;--g1:#ff3fd2;--g2:#3ee8f2;--hud:rgba(9,13,17,.88);--hud2:rgba(62,232,242,.07);--gridline:rgba(200,210,220,.22);
+  background:var(--bg);
+}
+/* The page fits the screen and never scrolls: only what's inside the windows does. */
+html:has(body.cyber),body.cyber{height:100%;overflow:hidden}
+body.cyber #app{max-width:none;padding:0 12px 12px;height:100dvh;display:flex;flex-direction:column;overflow:hidden}
+body.cyber #app>main.desk{flex:1;min-height:0;display:flex;flex-direction:column}
+.desk>.dwrap{flex:1;min-height:0}
+.dwrap>.desktop{height:100%;min-height:0}
+.drolls{height:100%;min-height:0;display:flex;flex-direction:column}
+.drolls>.win{flex:1;min-height:0;max-height:100%}
+.desk{font:14px/1.45 "IBM Plex Sans",system-ui,sans-serif;color:var(--text)}
+.desk h2,.desk h3,.desk .wtitle,.sbanner,.desk .pbtn{font-family:"Chakra Petch",system-ui,sans-serif}
+
+/* the banner: hazard stripes, and the title split like the map's */
+.sbanner{position:relative;display:flex;align-items:center;gap:12px;margin:4px 0 10px;padding:8px 14px 8px 44px;color:var(--n);font-weight:700;font-size:13px;letter-spacing:.18em;text-transform:uppercase;
+  background:linear-gradient(90deg,var(--hud2),transparent 70%);border:1px solid var(--n-dim);clip-path:polygon(0 0,calc(100% - 14px) 0,100% 14px,100% 100%,0 100%)}
+.sbanner::before{content:"";position:absolute;left:0;top:0;bottom:0;width:30px;background:repeating-linear-gradient(-45deg,var(--n) 0 5px,transparent 5px 10px);opacity:.8}
+.sbanner .gtext{font-size:15px}
+.sbanner span:last-child{color:var(--n-soft);letter-spacing:.1em}
+.sdot{width:9px;height:9px;background:#333;border:1px solid var(--n-dim);transform:rotate(45deg)}
+.sdot.on{background:var(--n);box-shadow:0 0 8px var(--n)}
+.prompt{display:flex;flex-wrap:wrap;align-items:center;gap:10px;margin:0 0 10px;padding:9px 14px;color:var(--text);background:rgba(255,63,210,.08);border:1px solid var(--g1);box-shadow:0 0 12px rgba(255,63,210,.25) inset}
+.prompt b{color:var(--g1)}
+.dwrap{display:grid;grid-template-columns:minmax(0,1fr) 250px;grid-template-rows:minmax(0,1fr);gap:10px;align-items:stretch}
+@media (max-width:900px){.dwrap{grid-template-columns:1fr;grid-template-rows:minmax(0,1fr) minmax(0,28%)}}
+
+/* panels: a dark glass plate with a neon edge and one cut corner */
+.desk .win{position:relative;display:flex;flex-direction:column;min-width:0;background:var(--hud);color:var(--text);
+  clip-path:polygon(0 0,calc(100% - 18px) 0,100% 18px,100% 100%,14px 100%,0 calc(100% - 14px));
+  box-shadow:inset 0 0 0 1px var(--n-dim)}
+.desk .win::before{content:"";position:absolute;inset:0;pointer-events:none;z-index:2;
+  background:linear-gradient(var(--n),var(--n)) top right/26px 1px no-repeat,linear-gradient(var(--n),var(--n)) bottom left/20px 1px no-repeat;
+  clip-path:inherit}
+.desk .win::after{content:"";position:absolute;right:0;top:0;width:26px;height:26px;pointer-events:none;z-index:2;background:linear-gradient(225deg,transparent 12px,var(--n) 12px,var(--n) 13px,transparent 13px)}
+.desk .wbar{display:flex;align-items:center;gap:8px;padding:7px 24px 6px 10px;color:var(--n);font-weight:700;font-size:13px;letter-spacing:.12em;text-transform:uppercase;user-select:none;
+  border-bottom:1px solid rgba(62,232,242,.35);background:linear-gradient(90deg,var(--hud2),transparent)}
+.desk .wbar::after{content:"////";color:var(--n-dim);letter-spacing:1px;font-weight:400}
+.desk .wbar[data-drag]{cursor:move}
+.desk .wtitle{flex:1;min-width:0;overflow:hidden;text-overflow:ellipsis;white-space:nowrap}
+.desk .wic{width:18px;display:flex;justify-content:center}
+.desk .ico{width:18px;height:18px;object-fit:contain;flex:none}
+.desk .wbtn{order:3;width:22px;height:22px;padding:0;line-height:18px;background:transparent;color:var(--n);border:1px solid var(--n-dim);font:700 14px/18px "Chakra Petch",sans-serif;cursor:pointer}
+.desk .wbtn:hover{background:var(--n);color:#000}
+.desk .wbody{flex:1;min-height:0;overflow:auto;padding:12px 14px}
+.desk .wbody .note,.desk .note{color:var(--n-soft)}
+.desk .rich a{color:var(--n)}
+.desk .gone{display:flex;align-items:center;gap:8px;color:var(--n-soft)}
+
+/* the desktop: a grid tunnel, floor and ceiling running off to a far wall */
+.desktop{position:relative;min-height:320px;overflow:hidden;perspective:520px;perspective-origin:50% 50%;
+  background:linear-gradient(var(--gridline) 1px,transparent 1px) 0 0/48px 48px,linear-gradient(90deg,var(--gridline) 1px,transparent 1px) 0 0/48px 48px,#0d0d0d;
+  box-shadow:inset 0 0 0 1px #333,inset 0 0 120px 40px #000}
+.desktop::before{content:"";position:absolute;left:-60%;right:-60%;height:70%;pointer-events:none;z-index:0;
+  background-image:linear-gradient(var(--gridline) 1px,transparent 1px),linear-gradient(90deg,var(--gridline) 1px,transparent 1px);background-size:56px 56px}
+.desktop::before{bottom:-12%;transform:rotateX(72deg);transform-origin:50% 100%;
+  -webkit-mask-image:linear-gradient(to top,#000 30%,transparent);mask-image:linear-gradient(to top,#000 30%,transparent)}
+.desktop::after{content:"";position:absolute;inset:0;pointer-events:none;z-index:0;
+  background:radial-gradient(ellipse at 50% 50%,transparent 30%,rgba(0,0,0,.65) 100%),repeating-linear-gradient(0deg,rgba(0,0,0,.22) 0 1px,transparent 1px 3px)}
+.desktop .win{position:absolute;z-index:1;min-width:150px;min-height:90px;transform:translateZ(0)}
+.dempty{position:absolute;inset:auto 0 42%;z-index:1;display:flex;flex-direction:column;align-items:center;gap:12px;color:var(--n-soft);font:600 13px "Chakra Petch",sans-serif;letter-spacing:.2em;text-transform:uppercase}
+.dempty .ico{width:60px;height:60px;filter:drop-shadow(-2px 0 var(--g1)) drop-shadow(2px 0 var(--g2))}
+/* the desktop's app icons, down its left edge, under any window */
+.dicons{position:absolute;left:10px;top:12px;z-index:1;display:flex;flex-direction:column;gap:14px}
+.dicon{display:flex;flex-direction:column;align-items:center;gap:6px;width:72px;padding:8px 4px;background:none;border:1px solid transparent;color:var(--n);cursor:pointer;
+  font:600 11px "Chakra Petch",sans-serif;letter-spacing:.14em;text-transform:uppercase;text-shadow:-1px 0 var(--g1),1px 0 var(--g2)}
+.dicon .ico{width:40px;height:40px;filter:drop-shadow(0 0 6px rgba(62,232,242,.45))}
+.dicon:hover,.dicon:focus-visible{border-color:var(--n-dim);background:rgba(62,232,242,.08)}
+.dicon:hover .ico{filter:url(#rgb-split) drop-shadow(0 0 8px var(--n))}
+.desktop .dempty{left:90px}
+.wgrip{position:absolute;right:3px;bottom:3px;width:14px;height:14px;z-index:3;cursor:nwse-resize;background:linear-gradient(135deg,transparent 55%,var(--n) 55%,var(--n) 62%,transparent 62%,transparent 75%,var(--n) 75%,var(--n) 82%,transparent 82%)}
+
+/* the file browser */
+.explorer .addr{margin:8px 8px 4px;padding:4px 8px;color:var(--n);background:rgba(0,0,0,.5);border:1px solid rgba(62,232,242,.3);font:12px/1.4 "IBM Plex Mono",ui-monospace,monospace;overflow:hidden;text-overflow:ellipsis;white-space:nowrap}
+.explorer .addr::before{content:"> ";color:var(--g1)}
+.desk .ebody{padding:0 0 4px}
+.explorer .files{display:flex;flex-direction:column;gap:1px;margin:4px 8px}
+.explorer .file{display:flex;align-items:center;gap:8px;padding:4px 6px;border:0;border-left:2px solid transparent;background:none;text-align:left;cursor:pointer;color:var(--text);font:inherit}
+.explorer .file:hover{background:var(--hud2);border-left-color:var(--n-dim)}
+.explorer .file.on{background:rgba(62,232,242,.16);border-left-color:var(--n);color:#fff}
+.explorer .file.open span:last-child{text-decoration:underline dotted var(--n-dim)}
+.explorer .file.live span:last-child::after{content:" ◆";color:var(--n);text-shadow:0 0 6px var(--n)}
+.explorer .fic{width:20px;display:flex;justify-content:center}
+.explorer .tools{margin:6px 8px 8px;flex-wrap:wrap;gap:6px}
+.explorer .preview{margin:4px 8px 10px;border-top:1px solid rgba(62,232,242,.35);background:rgba(0,0,0,.35)}
+.explorer .phead{display:flex;flex-wrap:wrap;align-items:center;gap:6px;padding:8px 6px;color:var(--n)}
+.explorer .pbody{padding:4px 8px 10px}
+
+/* buttons: slanted neon outlines */
+.desk .pbtn{display:inline-flex;align-items:center;background:transparent;color:var(--n);border:1px solid var(--n-dim);border-radius:0;padding:4px 14px;font-size:12px;font-weight:600;letter-spacing:.1em;text-transform:uppercase;box-shadow:none;
+  clip-path:polygon(0 0,100% 0,100% calc(100% - 7px),calc(100% - 7px) 100%,0 100%)}
+.desk .pbtn:hover{background:var(--hud2);border-color:var(--n)}
+.desk .pbtn.primary{background:var(--n);color:#031014;border-color:var(--n)}
+.desk .pbtn.primary:hover{box-shadow:0 0 14px var(--n)}
+.desk .pbtn.del{color:var(--g1);border-color:var(--g1)}
+.desk .pbtn .ico{width:14px;height:14px;margin-right:6px}
+.desk .cnt{color:var(--n-soft);font-size:11px;letter-spacing:.08em}
+.drolls .rlist,.drolls .klist{list-style:none;margin:0;padding:0}
+.drolls .klist li{padding:4px 0;border-bottom:1px dashed rgba(62,232,242,.25)}
+.desk .scene h3{margin:4px 0 8px;color:var(--n);font-size:24px;line-height:1.15;letter-spacing:.04em;text-shadow:-1px 0 var(--g1),1px 0 var(--g2)}
+.desk .clock .pips{font-size:20px}
+.desk .rimg.big img{max-width:100%}
+.desk .crew{display:block}
+.desk .empty{color:var(--n-soft)}
+
+/* Glitches: an RGB split on titles, a burst of slices now and then on the banner, a window
+   glitching in when the GM opens it, and pictures tearing and splitting. */
+.desk .wtitle,.sbanner .gtext{text-shadow:-1px 0 var(--g1),1px 0 var(--g2)}
+.sbanner .gtext{position:relative;display:inline-block}
+.sbanner .gtext::before,.sbanner .gtext::after{content:attr(data-text);position:absolute;inset:0;opacity:0;pointer-events:none}
+.sbanner .gtext::before{color:var(--g1);animation:g-slice 7s steps(1) infinite}
+.sbanner .gtext::after{color:var(--g2);animation:g-slice 7s steps(1) .12s infinite reverse}
+@keyframes g-slice{
+  0%,93%,100%{opacity:0;clip-path:none;transform:none}
+  94%{opacity:.9;clip-path:inset(10% 0 60% 0);transform:translate(-3px,-1px)}
+  95%{opacity:.9;clip-path:inset(55% 0 20% 0);transform:translate(3px,1px)}
+  96%{opacity:.9;clip-path:inset(30% 0 45% 0);transform:translate(-2px,0)}
+  97%{opacity:.9;clip-path:inset(75% 0 5% 0);transform:translate(2px,-1px)}
+}
+.desktop .win.fresh{animation:g-open .32s steps(1)}
+@keyframes g-open{
+  0%{opacity:.6;transform:translate(-6px,0);filter:drop-shadow(-3px 0 var(--g1)) drop-shadow(3px 0 var(--g2))}
+  25%{opacity:.3;transform:translate(5px,0);filter:drop-shadow(3px 0 var(--g1)) drop-shadow(-3px 0 var(--g2))}
+  50%{opacity:.9;transform:translate(-3px,0);filter:drop-shadow(-2px 0 var(--g1)) drop-shadow(2px 0 var(--g2))}
+  75%{opacity:1;transform:translate(1px,0);filter:none}
+  100%{opacity:1;transform:translateZ(0);filter:none}
+}
+.desk .wbody .rimg img{transform:translateZ(0)}
+.desk .wbody .rimg:hover img{filter:url(#rgb-split)}
+svg.defs{position:absolute;width:0;height:0;overflow:hidden}
+.desk .glitchy{position:relative}
+.desk .strips{position:absolute;display:flex;flex-direction:column;pointer-events:none;overflow:visible}
+.desk .strips span{display:block;flex:none;background-repeat:no-repeat;opacity:0;animation-iteration-count:infinite;animation-timing-function:steps(1)}
+@keyframes g-strip-1{0%,30%,34%,66%,69%,100%{opacity:0;transform:none;filter:hue-rotate(0)}30.1%,33.9%{opacity:1;transform:translateX(var(--gx1));filter:hue-rotate(var(--gh1)) drop-shadow(2px 0 0 var(--g1))}66.1%,68.9%{opacity:1;transform:translateX(var(--gx2));filter:hue-rotate(var(--gh2)) drop-shadow(-2px 0 0 var(--g2))}}
+@keyframes g-strip-2{0%,50%,53%,100%{opacity:0;transform:none;filter:hue-rotate(0)}50.1%,52.9%{opacity:1;transform:translateX(var(--gx1));filter:hue-rotate(var(--gh1)) drop-shadow(-2px 0 0 var(--g2))}}
+@keyframes g-strip-3{0%,12%,14%,80%,83%,100%{opacity:0;transform:none;filter:hue-rotate(0)}12.1%,13.9%{opacity:1;transform:translateX(var(--gx2));filter:hue-rotate(var(--gh2))}80.1%,82.9%{opacity:1;transform:translateX(var(--gx1));filter:hue-rotate(var(--gh1)) drop-shadow(2px 0 0 var(--g1))}}
+@media (prefers-reduced-motion:reduce){
+  .desk .strips{display:none}
+  .sbanner .gtext::before,.sbanner .gtext::after,.desktop .win.fresh{animation:none}
+}
+@media (max-width:600px){.sbanner{font-size:11px;letter-spacing:.1em}.sbanner .gtext{font-size:12px}}
+
+/* the interactive map (mapstage.js): a picture to pan and zoom, with places on it that open their
+   cards. Floating places (Depth) bob and drift against the pointer and the camera; static is a
+   hidden place the crew only glimpse; the ship is a marker that glides when the GM moves it. */
+.mstage{display:flex;justify-content:center}
+.mvp{position:relative;overflow:hidden;width:100%;max-width:100%;border:1px solid var(--line);border-radius:4px;background:#000;touch-action:pan-y;user-select:none;-webkit-user-select:none}
+.mvp.zoomed,.mvp.arrange{touch-action:none}
+.mworld{position:relative;transform-origin:0 0;--mx:0;--my:0;--cx:0;--cy:0}
+.mbg{display:block}
+.mbg img{display:block;width:100%;height:auto;pointer-events:none;-webkit-user-drag:none}
+.mbg img[data-row]:not([src]){min-height:240px;visibility:hidden}
+.mlayers,.mareas{position:absolute;inset:0;width:100%;height:100%;pointer-events:none}
+.mareas{overflow:visible;z-index:1}
+.mlay{position:absolute;transform:translate(-50%,-50%);transition:left 1.2s cubic-bezier(.4,0,.2,1),top 1.2s cubic-bezier(.4,0,.2,1),width .3s,filter .2s,opacity .3s}
+.mlay.dragging{transition:filter .2s}
+.mlay.full{inset:0;transform:none;width:auto}
+.mlay .mpic{display:block}
+.mlay img{display:block;width:100%;height:auto;pointer-events:none;-webkit-user-drag:none}
+.mlay .mpic.fill,.mlay .mpic.fill img{width:100%;height:100%;object-fit:contain}
+.mlay img[data-row]:not([src]){visibility:hidden;min-height:20px}
+.mlay.hover,.mlay.cur{filter:drop-shadow(0 0 2px var(--cyan)) drop-shadow(0 0 10px var(--cyan)) brightness(1.2)}
+.mlay.hid{opacity:.38}
+.mlay.dim{opacity:.25}
+.mlay.static,.mlay.gmstatic{filter:grayscale(1) brightness(.55) contrast(1.4) blur(.7px)}
+.mlay.static{animation:mstatic 3.4s steps(1) infinite}
+.mlay.static.hover{filter:grayscale(1) brightness(.8) blur(.4px)}
+@keyframes mstatic{0%,100%{opacity:.5}23%{opacity:.2}25%{opacity:.6}61%{opacity:.32}63%{opacity:.55}88%{opacity:.15}}
+/* Depth: drift against the pointer (mx, my) and the camera (cx, cy), and bob */
+.mdrift{transform:translate(calc((var(--mx) * -5px - var(--cx) * 14px) * var(--d,0)),calc((var(--my) * -4px - var(--cy) * 14px) * var(--d,0)));transition:transform .8s cubic-bezier(.2,.7,.3,1)}
+.mbob{position:relative}
+.mlay.floats .mbob,.mlay.ship .mbob{animation:mbob calc(5.5s + var(--k,0) * .7s) ease-in-out infinite alternate;animation-delay:calc(var(--k,0) * -1.3s)}
+@keyframes mbob{from{transform:translateY(calc(max(var(--d,0),1) * 1.5px))}to{transform:translateY(calc(max(var(--d,0),1) * -1.5px))}}
+.mlay.ship .mpic{border-radius:50%;overflow:hidden;border:2px solid var(--cyan);box-shadow:0 0 calc(var(--glow) + 4px) color-mix(in srgb,var(--cyan) 70%,transparent);background:#000}
+.mlay.ship .mpic img{aspect-ratio:1;object-fit:cover}
+.mlabel{position:absolute;left:50%;top:100%;transform:translate(-50%,4px);white-space:nowrap;padding:2px 6px;border-radius:999px;background:color-mix(in srgb,#000 70%,transparent);color:#fff;font:700 10px/1.2 "Chakra Petch",sans-serif;letter-spacing:.1em;text-transform:uppercase}
+.mlay.sel{outline:1px dashed var(--cyan);outline-offset:2px}
+.mhandle{position:absolute;right:-8px;bottom:-8px;width:16px;height:16px;border-radius:3px;background:var(--cyan);border:2px solid #000;cursor:nwse-resize;pointer-events:auto}
+.mareas .ma{fill:transparent;stroke:transparent;stroke-width:1.5;vector-effect:non-scaling-stroke}
+.mareas .ma.lvl{stroke:color-mix(in srgb,var(--cyan) 40%,transparent);stroke-dasharray:4 3}
+.mareas .ma.lvl.now{stroke:var(--pink);fill:color-mix(in srgb,var(--pink) 14%,transparent)}
+.mvp.arrange .mareas .ma{stroke:color-mix(in srgb,var(--cyan) 55%,transparent)}
+.mareas .ma.hid{stroke:color-mix(in srgb,var(--pink) 60%,transparent);stroke-dasharray:2 2}
+.mareas .ma.hover,.mareas .ma.cur,.mareas .ma.sel{stroke:var(--cyan);stroke-width:2;fill:color-mix(in srgb,var(--cyan) 18%,transparent)}
+.mareas .mdraft{fill:color-mix(in srgb,var(--amber) 18%,transparent);stroke:var(--amber);stroke-width:2;vector-effect:non-scaling-stroke}
+.mzoom{position:absolute;left:8px;bottom:8px;z-index:2;display:grid;gap:4px} /* clear of a card open beside the map */
+.mzoom .ic{background:color-mix(in srgb,var(--panel) 85%,transparent);font:600 16px/1 system-ui,sans-serif}
+.mchips{display:flex;flex-wrap:wrap;gap:6px;margin-top:10px}
+.mchips .chip.off{color:var(--muted);border-style:dashed}
+.mwhere{margin-top:2px;color:var(--muted);font:600 11px/1.3 "Chakra Petch",sans-serif;letter-spacing:.12em;text-transform:uppercase}
+.minside{margin:0;font:700 16px/1.2 "Chakra Petch",sans-serif;letter-spacing:.08em;text-transform:uppercase}
+.mfields{align-items:flex-start}
+.mfields .field{flex:1 1 140px}
+/* a card opened from the map, beside it (under it, on a phone) */
+#mapcard .card.open{position:fixed;z-index:20;top:calc(env(safe-area-inset-top,0px) + 76px);right:max(16px,env(safe-area-inset-right,0px));width:min(380px,calc(100vw - 32px));max-height:calc(100dvh - 96px);overflow:auto;margin:0;box-shadow:var(--shadow);animation:mfade .2s ease}
+#mapcard .card.open .rimg img{max-height:220px;object-fit:contain}
+@media (max-width:700px){#mapcard .card.open{top:auto;bottom:max(12px,env(safe-area-inset-bottom,0px));left:max(12px,env(safe-area-inset-left,0px));right:max(12px,env(safe-area-inset-right,0px));width:auto;max-height:55dvh}}
+/* the levels of a place, tilted into a stack to pick from */
+.mstack{position:relative;height:min(560px,120vw);perspective:1400px;overflow:hidden;border:1px solid var(--line);border-radius:4px;background:#000}
+.mplane{position:absolute;left:50%;top:60%;width:min(400px,66vw);aspect-ratio:1.15;padding:0;overflow:visible;border:1px solid color-mix(in srgb,var(--cyan) 45%,transparent);background:rgba(0,0,0,.55);cursor:pointer;
+  transform:translate(-50%,-50%) rotateX(58deg) rotateZ(-38deg) translateZ(calc(var(--i) * 95px));transition:transform .3s,border-color .3s,filter .3s}
+.mplane:hover,.mplane:focus-visible{transform:translate(-50%,-50%) rotateX(58deg) rotateZ(-38deg) translateZ(calc(var(--i) * 95px + 26px));border-color:var(--pink);filter:brightness(1.3)}
+.mplanepic,.mplanepic img{display:block;width:100%;height:100%;object-fit:cover;object-position:50% 100%}
+.mplane span{position:absolute;left:-8px;top:-8px;padding:4px 8px;background:var(--panel);border:1px solid var(--line);border-radius:999px;color:var(--text);font:700 11px/1 "Chakra Petch",sans-serif;letter-spacing:.1em;text-transform:uppercase}
+.fade{animation:mfade .4s ease}
+.mstage.goup .mworld{animation:mgoup .4s ease}
+.mstage.godown .mworld{animation:mgodown .4s ease}
+@keyframes mfade{from{opacity:0}}
+@keyframes mgoup{from{opacity:0;transform:translateY(8%)}}
+@keyframes mgodown{from{opacity:0;transform:translateY(-8%)}}
+@media (prefers-reduced-motion: reduce){.mlay,.mdrift{transition:none}.mlay.static,.mbob,.fade,.mstage .mworld,#mapcard .card.open{animation:none!important}.mdrift{transform:none}}
+
+/* the Map app on the Session desktop: the crew's map in a window, its place cards inside it */
+.desk .wbody.mapbody{padding:0;position:relative;overflow:auto}
+.mapapp{position:relative;min-height:100%}
+.mapapp .mapmain{padding:8px}
+.mapapp .mtools{margin-bottom:6px}
+.mapapp .mvp{border-color:rgba(62,232,242,.35)}
+.mapapp .mapcard .card.open{position:absolute;z-index:5;top:8px;right:8px;width:min(340px,calc(100% - 16px));max-height:calc(100% - 16px);overflow:auto;margin:0;background:var(--hud);border:1px solid var(--n-dim);box-shadow:0 0 18px rgba(62,232,242,.2);animation:mfade .2s ease}
+.mapapp .mapcard .card.open .rimg img{max-height:200px;object-fit:contain}

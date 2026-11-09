@@ -6,13 +6,16 @@ import { GameClient } from './api.js';
 import { gameRules, TABS as RULE_TABS } from './rules.js';
 import { systemOf, characterTypes, sum, circles } from './system.js';
 import { md } from './markup.js';
-import { parseTrack, formatTrack } from './codec.js';
-import { esc, escTxt, ICON, armed, deletedToast, pipClass, pageShell, refreshNav, askKey, whenIdle, debounce, fitText, noGame, freeName, toEntries, toRows, sameRows, typingIn } from './core.js';
+import { parseTrack, formatTrack, logId } from './codec.js';
+import { esc, escTxt, ICON, armed, toast, deletedToast, pipClass, pageShell, refreshNav, askKey, whenIdle, debounce, fitText, noGame, freeName, toEntries, toRows, sameRows, typingIn } from './core.js';
 import { crewCardHTML, shipCardHTML } from './cards.js';
 import { showPictures } from './pictures.js';
 import { tagsHTML, tagListHTML, addTag, removeTag } from './tags.js';
 import { splitTags } from './crew.js';
 import { SECTIONS, sectionHTML, searchAllHTML, sectionHasContent } from './refview.js';
+import { SESSION_TAB, NPCS_TAB, ACTIONS, parseSession, hasDone, rollLine, parseSpec, formatSpec } from './session-model.js';
+import { shareButtonHTML, wireShare, writeRows } from './share.js';
+import { parseRoll, ROLLS_TAB } from './rolls.js';
 
 const app = document.getElementById('app');
 const game = bootstrap();
@@ -25,7 +28,7 @@ const main = document.createElement('main');
 app.append(main);
 showPictures(main, client);
 
-const TABS = [['crew', 'Crew'], ['npcs', 'NPCs'], ['notes', 'Notes'], ['ref', 'Reference']];
+const TABS = [['session', 'Session'], ['crew', 'Crew'], ['npcs', 'NPCs'], ['notes', 'Notes'], ['ref', 'Reference']];
 const REF_KEYS = ['fates', 'tags', 'moves', 'playbooks', 'reference', 'world', 'other'];
 let tab = 'crew';
 let refTab = 'fates';
@@ -36,7 +39,7 @@ let R = gameRules(client);
 // GM tab rows as editable entries (kinds lower-cased; unknown kinds kept as they are).
 let entries = toEntries(gmStore.rows, true);
 let base = toRows(entries);
-function changed() { const next = toRows(entries); gmStore.change(base, next); base = next; }
+function changed() { const next = toRows(entries); gmStore.change(base, next); base = next; syncClocks(); }
 const busy = () => typingIn(main);
 
 // Someone else's change, held while this page is typing (see whenIdle).
@@ -61,7 +64,7 @@ const pipsHTML = (id, arr, label) => arr.map((v, j) => `<button class="pip${pipC
 
 /* ---------- views ---------- */
 function crewHTML() {
-  return `<div class="crew">${characters().map(n => crewCardHTML(client, n, { gm: true })).join('')}${shipCardHTML(client, { gm: true })}</div>`;
+  return `<div class="crew">${characters().map(n => crewCardHTML(client, n, { gm: true, share: true })).join('')}${shipCardHTML(client, { gm: true, share: true })}</div>`;
 }
 
 // NPC tags (an npc row's Value): the Rules tab's npc tags as chips linking to them, the rest free text.
@@ -91,7 +94,7 @@ function npcHTML() {
           <span class="pm"><button class="mini" data-act="harm-" data-name="${esc(e.name)}" aria-label="Less">−</button><button class="mini" data-act="harm+" data-name="${esc(e.name)}" aria-label="More">+</button></span></div>
         <textarea class="in rtext" data-f="notes" data-i="${i}" aria-label="Notes">${escTxt(e.notes)}</textarea></section>`;
     }
-    return `<section class="card"><div class="shead"><h2>${escTxt(e.name)}</h2></div>
+    return `<section class="card"><div class="shead"><h2>${escTxt(e.name)}</h2><span class="grow"></span>${shareButtonHTML({ type: 'npc', ref: e.name, i })}</div>
       ${npcTags(e, i)}
       ${harm.length ? `<div class="cc-row"><span class="lbl">${escTxt(harmName())}</span><span class="pips harm">${pipsHTML(e.name, harm, `${e.name} ${harmName()}`)}</span></div>` : ''}
       ${e.notes ? `<div class="rich">${md(e.notes)}</div>` : ''}</section>`;
@@ -109,14 +112,14 @@ function notesHTML() {
     const cards = items.map(({ e, i }) => {
       if (kind === 'clock') {
         const p = parseTrack(e.value);
-        return `<section class="card"><div class="shead">${editing ? `<input class="in st" data-f="name" data-i="${i}" value="${esc(e.name)}" aria-label="Clock">` : `<h2>${escTxt(e.name)}</h2>`}
+        return `<section class="card"><div class="shead">${editing ? `<input class="in st" data-f="name" data-i="${i}" value="${esc(e.name)}" aria-label="Clock">` : `<h2>${escTxt(e.name)}</h2>${shareButtonHTML({ type: 'clock', ref: e.name, i })}`}
           <span class="pips">${pipsHTML(`clock:${i}`, p, e.name)}</span>
           ${editing ? `<span class="pm"><button class="mini" data-act="clock-" data-i="${i}" aria-label="Fewer">−</button><button class="mini" data-act="clock+" data-i="${i}" aria-label="More">+</button></span><button class="mini del" data-act="rm" data-i="${i}" aria-label="Delete">×</button>` : ''}</div></section>`;
       }
       return editing
         ? `<section class="card"><div class="shead"><input class="in st" data-f="name" data-i="${i}" value="${esc(e.name)}" aria-label="Title"><button class="mini del" data-act="rm" data-i="${i}" aria-label="Delete">×</button></div>
             <textarea class="in rtext" data-f="value" data-i="${i}" aria-label="Text">${escTxt(e.value)}</textarea></section>`
-        : `<section class="card"><div class="shead"><h2>${escTxt(e.name)}</h2></div>${e.value ? `<div class="rich">${md(e.value)}</div>` : ''}</section>`;
+        : `<section class="card"><div class="shead"><h2>${escTxt(e.name)}</h2><span class="grow"></span>${shareButtonHTML({ type: 'secret', title: e.name, i })}</div>${e.value ? `<div class="rich">${md(e.value)}</div>` : ''}</section>`;
     }).join('');
     return `<div class="mgroup"><h3>${label}</h3><div class="cols">${cards}</div>${editing ? `<button class="add sm" data-act="add-note" data-kind="${kind}">+</button>` : ''}</div>`;
   }).join('');
@@ -149,10 +152,78 @@ function render() {
     return;
   }
   if (!gmStore.loaded && !gmStore.missing) { main.innerHTML = '<div class="empty">Loading…</div>'; return; }
-  const view = tab === 'crew' ? crewHTML() : tab === 'npcs' ? npcHTML() : tab === 'notes' ? notesHTML() : refHTML();
+  const view = tab === 'session' ? sessionHTML() : tab === 'crew' ? crewHTML() : tab === 'npcs' ? npcHTML() : tab === 'notes' ? notesHTML() : refHTML();
   main.innerHTML = `<nav class="tabs">${TABS.map(([k, l]) => `<button data-tab="${k}" class="${tab === k ? 'on' : ''}">${l}</button>`).join('')}</nav><div class="gmview">${view}</div>`;
   fitText(main.querySelectorAll('textarea'), 70);
 }
+
+/* ---------- sessions ---------- */
+// Starting a session, ending it, or ending a chapter prompts each player, on the Session page, to
+// run that on their sheet; the ticks show who has.
+const ACTION_LABEL = { 'session-begin': 'Session Begins', 'session-end': 'Session Ends', 'chapter-end': 'Chapter’s End' };
+const labelOf = a => R.recs.find(r => String(r.meta.action).toLowerCase() === a && r.meta.label)?.meta.label || R.recs.find(r => String(r.meta.action).toLowerCase() === a)?.name || ACTION_LABEL[a];
+function sessionHTML() {
+  const S = parseSession(client.tab(SESSION_TAB).rows);
+  const cur = S.current;
+  const chars = characters();
+  const ticks = ACTIONS.filter(a => S.prompts[a]?.stamp).map(a => `<div class="cc-row"><span class="lbl">${escTxt(labelOf(a))}</span>${escTxt(S.prompts[a].title)}
+      <span class="grow"></span>${chars.map(n => `<span class="pill${hasDone(S, a, n) ? ' in' : ''}" title="${hasDone(S, a, n) ? 'Done' : 'Not yet'}">${hasDone(S, a, n) ? '✓' : '·'} ${escTxt(n)}</span>`).join(' ')}</div>`).join('');
+  return `<section class="card"><div class="shead"><h2>${cur ? escTxt(cur.title) : 'No session running'}</h2></div>
+    ${cur ? `<div class="note">Started ${escTxt(new Date(cur.start).toLocaleString())}</div>
+      <div class="prow"><button class="pbtn" data-act="ses-end">End the session</button><button class="pbtn" data-act="chapter-end">End the chapter</button></div>`
+    : `<div class="prow"><input class="in" id="ses-title" placeholder="Session ${S.sessions.length + 1}: …" aria-label="Session title"><button class="pbtn primary" data-act="ses-start">Start a session</button></div>`}
+    <div class="note">The crew get a prompt on the Session page to run it on their sheets. Share things from here, the Map, Lore, Rules, Crew and Ship pages.</div>
+    ${ticks}</section>`;
+}
+
+const sessionRows = next => writeRows(client, SESSION_TAB, next).catch(e => toast(e.message, 'lo'));
+const promptRow = (a, title) => ['prompt', a, logId(), title];
+function startSession() {
+  const S = parseSession(client.tab(SESSION_TAB).rows);
+  const title = (document.getElementById('ses-title')?.value || '').trim() || `Session ${S.sessions.length + 1}`;
+  if (S.sessions.some(x => x.title.toLowerCase() === title.toLowerCase())) { toast(`There’s a session called “${title}” already.`, 'lo'); return; }
+  const now = new Date().toISOString();
+  sessionRows(rows => [...rows.filter(r => !(String(r[0]).toLowerCase() === 'prompt')), ['session', title, now, ''], promptRow('session-begin', title)]).then(render);
+}
+// The session keeps its rolls as the sheet has them now, not as this page last read them.
+async function endSession() {
+  const S = parseSession(client.tab(SESSION_TAB).rows);
+  const cur = S.current;
+  if (!cur) return;
+  await client.read([ROLLS_TAB]).catch(() => {});
+  const now = new Date().toISOString();
+  const from = Date.parse(cur.start) || 0;
+  const rolls = client.tab(ROLLS_TAB).rows.map(parseRoll).filter(r => Date.parse(r.when) >= from).map(rollLine).join('\n');
+  sessionRows(rows => [...rows.filter(r => !(String(r[0]).toLowerCase() === 'session' && r[1] === cur.title) && String(r[0]).toLowerCase() !== 'prompt'),
+    ['session', cur.title, cur.start, now], ['rolls', cur.title, rolls, ''], promptRow('session-end', cur.title)]).then(render);
+}
+function endChapter() {
+  const S = parseSession(client.tab(SESSION_TAB).rows);
+  sessionRows(rows => [...rows.filter(r => !(String(r[0]).toLowerCase() === 'prompt' && String(r[1]).toLowerCase() === 'chapter-end')), promptRow('chapter-end', S.current?.title || '')]).then(render);
+}
+
+// A shared clock follows the GM's: ticking it here ticks it on the Session page.
+function syncClocks() {
+  const st = client.tab(SESSION_TAB);
+  const clocks = new Map(entries.filter(e => e.kind === 'clock').map(e => [e.name.toLowerCase(), e.value]));
+  const next = st.rows.map(r => {
+    if (String(r[0]).toLowerCase() !== 'share') return r;
+    const sp = parseSpec(r[3]);
+    if (sp.type !== 'clock' || !clocks.has(sp.ref.toLowerCase()) || clocks.get(sp.ref.toLowerCase()) === sp.body) return r;
+    return [r[0], r[1], r[2], formatSpec({ ...sp, body: clocks.get(sp.ref.toLowerCase()) })];
+  });
+  if (next.some((r, i) => r !== st.rows[i])) st.change(st.rows, next);
+}
+
+// What a Share button here shares: an NPC's parts to pick from, a secret's text, a clock's pips.
+wireShare(main, client, spec => {
+  const e = entries[spec.i];
+  if (!e) return spec;
+  if (spec.type === 'npc') { const h = harmOf(e.name); return { type: 'npc', ref: e.name, npc: { tags: e.value, harm: h ? h.value : '', notes: e.notes } }; }
+  if (spec.type === 'clock') return { type: 'clock', ref: e.name, body: e.value };
+  if (spec.type === 'secret') return { type: 'secret', title: e.name, body: e.value };
+  return spec;
+});
 
 /* ---------- interactions ---------- */
 function setHarm(name, fn) {
@@ -184,6 +255,9 @@ main.addEventListener('click', e => {
   const act = b.dataset.act;
   const i = +b.dataset.i;
   if (act === 'gm-key') askKey(client, 'Enter the GM passphrase.');
+  if (act === 'ses-start') startSession();
+  if (act === 'ses-end' && armed(b)) endSession();
+  if (act === 'chapter-end' && armed(b)) endChapter();
   if (act === 'edit') { editing = !editing; render(); }
   if (act === 'add-npc') {
     const name = unique('npc', 'New NPC');
@@ -266,8 +340,9 @@ client.on(e => {
     if (sig !== listSig) { listSig = sig; render(); }
   }
 });
+client.tab(SESSION_TAB).on(() => { if (tab === 'session') later(render); });
 render();
-client.watch('GM', 'Ship', ...characters());
+client.watch('GM', 'Ship', NPCS_TAB, 'Lore', ...characters());
 for (const n of ['Ship', ...characters()]) client.tab(n).on(() => { if (tab === 'crew') render(); });
 client.read([...RULE_TABS, ...client.watched]).catch(() => render());
 client.startPolling();

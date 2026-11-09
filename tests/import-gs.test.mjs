@@ -100,10 +100,10 @@ test('keeps list data validation, and says what it left out', () => {
   ]);
   assert.equal(res.ok, true, res.error);
   const map = sheet('Map');
-  assert.deepEqual(map.getRange('B5').getDataValidation(), { list: ['on'], dropdown: true, allowInvalid: false });
+  assert.deepEqual(map.getRange('B5').getDataValidation().list, ['on', 'static'], 'setUpChecks\'s Shown check, set after the import\'s own');
   assert.deepEqual(map.getRange('D2').getDataValidation().list, ['on']);
   assert.deepEqual(map.getRange('C2').getDataValidation(), { list: ['a', 'b', 'c'], dropdown: true, allowInvalid: true });
-  assert.equal(map.getRange('B6').getDataValidation(), null);
+  assert.equal(map.getRange('C6').getDataValidation(), null);
   assert.equal(map.getRange('E2').getDataValidation(), null);
   assert.deepEqual([...res.skipped].sort(), ['data validation that isn’t a list of choices (Map E2)', 'merged cells (Map)']);
 });

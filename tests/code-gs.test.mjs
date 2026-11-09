@@ -63,9 +63,9 @@ function byHand(gas, api, tab, rowNum, cells, { trigger = true } = {}) {
 
 test('ping works without a passphrase, GET otherwise refuses', () => {
   const { api } = setup();
-  assert.deepEqual(api.doGet({ parameter: { op: 'ping' } }), { ok: true, v: 11 });
+  assert.deepEqual(api.doGet({ parameter: { op: 'ping' } }), { ok: true, v: 12 });
   assert.equal(api.doGet({ parameter: {} }).ok, false);
-  assert.deepEqual(api.call({ op: 'ping' }), { ok: true, v: 11 });
+  assert.deepEqual(api.call({ op: 'ping' }), { ok: true, v: 12 });
 });
 
 test('explains missing passphrases', () => {
@@ -543,7 +543,7 @@ test('removed rows are remembered within a property’s size', () => {
   assert.ok(gone.length < 9000, `${gone.length} characters`); // Apps Script allows 9 kB per property
 });
 
-const MAP_H = ['Region', 'Location', 'Level', 'Image', 'Text', 'GM notes', 'Shown'];
+const MAP_H = ['Region', 'Location', 'Level', 'Image', 'Text', 'GM notes', 'Shown', 'On', 'Where', 'Depth'];
 function mapGame() {
   const b = n => Buffer.from(Array.from({ length: n }, (_, i) => (i * 37) & 255));
   const pics = { region: { type: 'image/png', bytes: b(300) }, hidden: { type: 'image/jpeg', bytes: b(10) }, level: { type: 'image/png', bytes: b(20) } };
@@ -568,10 +568,10 @@ test('the Map tab: places, levels and pictures; crew get only what the GM has sh
   const { api } = mapGame();
   const crewRows = crew(api, { op: 'read', tabs: ['Map'] }).tabs.Map.rows;
   assert.deepEqual(crewRows, [
-    ['Vega', '', '', 'row:2', 'The server.', '', ''],
-    ['Vega', 'Haven', '', '', 'A port.', '', 'on'],
-    ['', 'Haven', 'Level 1', 'row:4', 'Docks.', '', ''],
-    ['', 'Haven', 'Level 2', 'https://example.com/l2.png', 'Market.', '', ''],
+    ['Vega', '', '', 'row:2', 'The server.', '', '', '', '', ''],
+    ['Vega', 'Haven', '', '', 'A port.', '', 'on', '', '', ''],
+    ['', 'Haven', 'Level 1', 'row:4', 'Docks.', '', '', '', '', ''],
+    ['', 'Haven', 'Level 2', 'https://example.com/l2.png', 'Market.', '', '', '', '', ''],
   ], 'a placed picture goes as its row; a hidden place and its levels stay out');
   const gmRows = gm(api, { op: 'read', tabs: ['Map'] }).tabs.Map.rows;
   assert.equal(gmRows.length, 6);
@@ -592,6 +592,59 @@ test('show: the GM puts a place on the crew\'s map, or takes it off', () => {
   gm(api, { op: 'show', location: 'Haven', on: false });
   assert.equal(gas.ss.getSheetByName('Map').getRange(3, 7).getDisplayValues()[0][0], '');
   assert.equal(gm(api, { op: 'show', location: 'Nowhere', on: true }).code, 'missing');
+});
+
+test('show static: the crew get a hidden place\'s picture and where it is, nothing that names it', () => {
+  const { api, gas } = mapGame();
+  const map = gas.ss.getSheetByName('Map');
+  map.getRange(6, 8, 1, 3).setValues([['', '40 60 20', '2']]);
+  assert.equal(gm(api, { op: 'show', location: 'Lair', on: 'static' }).ok, true);
+  assert.equal(map.getRange(6, 7).getDisplayValues()[0][0], 'static');
+  const rows = crew(api, { op: 'read', tabs: ['Map'] }).tabs.Map.rows;
+  assert.deepEqual(rows.at(-1), ['Vega', '', '', 'row:6', '', '', 'static', '', '40 60 20', '2'], 'no name, text or levels');
+  assert.equal(rows.some(r => r[2] === 'Basement'), false);
+  assert.equal(crew(api, { op: 'image', row: 6 }).ok, true, 'its picture shows, as static');
+  assert.equal(gm(api, { op: 'read', tabs: ['Map'] }).tabs.Map.rows[4][1], 'Lair', 'the GM sees it all');
+  map.getRange(6, 9).setValues([['']]);
+  assert.equal(crew(api, { op: 'read', tabs: ['Map'] }).tabs.Map.rows.length, 4, 'static with nowhere to show: hidden');
+});
+
+test('where: the GM moves a row on its picture, and a stale copy is turned down', () => {
+  const { api, gas } = mapGame();
+  const rows = () => gm(api, { op: 'read', tabs: ['Map'] }).tabs.Map.rows;
+  assert.equal(crew(api, { op: 'where', row: 3, was: rows()[1], where: '1 2 3' }).code, 'forbidden');
+  let r = gm(api, { op: 'where', row: 3, was: rows()[1], where: '50.5 20 30', depth: '1' });
+  assert.equal(r.ok, true, r.error);
+  assert.deepEqual(r.rows[1].slice(7), ['', '50.5 20 30', '1']);
+  assert.equal(gas.ss.getSheetByName('Map').getRange(3, 9).getDisplayValues()[0][0], '50.5 20 30');
+  r = gm(api, { op: 'where', row: 3, was: rows()[1], where: '10,10 20,10 15,20' });
+  assert.deepEqual(r.rows[1].slice(7), ['', '10,10 20,10 15,20', '1'], 'Depth left alone');
+  assert.equal(gm(api, { op: 'where', row: 3, was: rows()[1], where: 'all' }).ok, true);
+  assert.equal(gm(api, { op: 'where', row: 3, was: rows()[1], where: '1 2' }).ok, false);
+  assert.equal(gm(api, { op: 'where', row: 3, was: ['old'], where: '1 2 3' }).code, 'conflict');
+  r = gm(api, { op: 'place', row: 3, was: rows()[1], cells: ['Vega', 'Haven', '', 'A port.', 'Secret door.', 'Vega', '', '3'] });
+  assert.equal(r.ok, true, r.error);
+  assert.deepEqual(r.rows[1].slice(7), ['Vega', '', '3'], 'place sets On, Where and Depth when sent');
+  assert.equal(gm(api, { op: 'place', row: 3, was: r.rows[1], cells: ['Vega', 'Haven', '', '', '', '', 'nowhere', ''] }).ok, false);
+});
+
+test('setUpChecks: the Map tab\'s Shown takes on or static, Depth a number', () => {
+  const { api, gas } = mapGame();
+  api.ctx.setUpChecks();
+  const map = gas.ss.getSheetByName('Map');
+  assert.deepEqual(map.getRange(2, 7).getDataValidation().list, ['on', 'static']);
+  assert.deepEqual(map.getRange(2, 10).getDataValidation().between, [0, 5]);
+});
+
+test('show and place: a Shown column checked before static was a choice is brought up to date first', () => {
+  const { api, gas } = mapGame();
+  const map = gas.ss.getSheetByName('Map');
+  const old = gas.services.SpreadsheetApp.newDataValidation().requireValueInList(['on'], true).setAllowInvalid(false).build();
+  map.getRange(2, 7, map.getMaxRows() - 1, 1).setDataValidation(old);
+  const r = gm(api, { op: 'show', location: 'Haven', on: 'static' });
+  assert.equal(r.ok, true, r.error);
+  assert.deepEqual(map.getRange(2, 7).getDataValidation().list, ['on', 'static']);
+  assert.equal(r.rows.find(x => x[1] === 'Haven' && !x[2])[6], 'static');
 });
 
 test('image: sends a picture placed in a Map cell, only to someone who can see its row', () => {
@@ -802,7 +855,7 @@ test('place: a row goes in with one write when the Map tab has its usual columns
   map.getRange = (...a) => { const r = real(...a); const sv = r.setValues.bind(r); r.setValues = v => { writes++; return sv(v); }; return r; };
   const r = gm(api, { op: 'place', row: 0, cells: ['Vega', 'Dock', '', 'A dock.', 'Notes.'], image: { name: 'Cat' } });
   assert.equal(r.ok, true, r.error);
-  assert.deepEqual(r.rows.at(-1), ['Vega', 'Dock', '', 'images:5', 'A dock.', 'Notes.', '']);
+  assert.deepEqual(r.rows.at(-1), ['Vega', 'Dock', '', 'images:5', 'A dock.', 'Notes.', '', '', '', '']);
   assert.equal(writes, 1);
 });
 
@@ -832,9 +885,9 @@ test('place: the GM adds, edits and removes places, levels and maps; renaming a 
   // A new level goes after its place's last row; a new place at the end, hidden.
   let r = gm(api, { op: 'place', row: 0, cells: ['', 'Haven', 'Level 3', 'Roof.', ''], image: { name: 'Cat' } });
   assert.equal(r.ok, true, r.error);
-  assert.deepEqual(r.rows[3], ['', 'Haven', 'Level 3', 'images:5', 'Roof.', '', '']);
+  assert.deepEqual(r.rows[3], ['', 'Haven', 'Level 3', 'images:5', 'Roof.', '', '', '', '', '']);
   r = gm(api, { op: 'place', row: 0, cells: ['Vega', 'Dock', '', '=not a formula', 'GM only.'] });
-  assert.deepEqual(r.rows.at(-1), ['Vega', 'Dock', '', '', '=not a formula', 'GM only.', '']);
+  assert.deepEqual(r.rows.at(-1), ['Vega', 'Dock', '', '', '=not a formula', 'GM only.', '', '', '', '']);
   assert.equal(crew(api, { op: 'read', tabs: ['Map'] }).tabs.Map.rows.some(x => x[1] === 'Dock'), false, 'new places start hidden');
 
   // Editing keeps what isn't sent (the picture, Shown) and turns down a stale copy.
@@ -933,7 +986,7 @@ test('place: makes the Map and Images tabs when the sheet has neither', () => {
   const { api } = setup();
   const r = gm(api, { op: 'place', row: 0, cells: ['Vega', '', '', 'The sea.', ''], image: { name: 'Vega', type: 'image/jpeg', data: 'AQID' } });
   assert.equal(r.ok, true, r.error);
-  assert.deepEqual(r.rows, [['Vega', '', '', 'images:2', 'The sea.', '', '']]);
+  assert.deepEqual(r.rows, [['Vega', '', '', 'images:2', 'The sea.', '', '', '', '', '']]);
   assert.equal(crew(api, { op: 'image', tab: 'Images', row: 2 }).ok, true, 'a region map always shows');
 });
 
@@ -1054,4 +1107,40 @@ test('unroll: clears the latest row that matches, and a roll already gone is no 
   assert.equal(crew(api, { op: 'unroll', row: a }).ok, true);
   assert.equal(gas.ss.getSheetByName('Rolls').getLastRow(), 2);
   assert.equal(crew(api, { op: 'unroll', row: ['x'] }).ok, false);
+});
+
+test('show with a level: only the levels shown on their own reach the crew, and the place goes on with them', () => {
+  const { api, gas } = mapGame();
+  const r = gm(api, { op: 'show', location: 'Lair', level: 'basement', on: true });
+  assert.equal(r.ok, true);
+  const map = gas.ss.getSheetByName('Map');
+  assert.equal(map.getRange(7, 7).getDisplayValues()[0][0], 'on', 'the level');
+  assert.equal(map.getRange(6, 7).getDisplayValues()[0][0], 'on', 'its place');
+  gm(api, { op: 'show', location: 'Haven', level: 'Level 2', on: true });
+  const names = crew(api, { op: 'read', tabs: ['Map'] }).tabs.Map.rows.map(x => x[2] || x[1]);
+  assert.deepEqual(names, ['', 'Haven', 'Level 2', 'Lair', 'Basement'], 'Level 1 of Haven stays out once Level 2 is shown on its own');
+  assert.equal(gm(api, { op: 'read', tabs: ['Map'] }).tabs.Map.rows.length, 6, 'the GM still sees every row');
+  gm(api, { op: 'show', location: 'Haven', level: 'Level 2', on: false });
+  assert.equal(map.getRange(3, 7).getDisplayValues()[0][0], 'on', 'taking a level off leaves its place');
+  assert.deepEqual(crew(api, { op: 'read', tabs: ['Map'] }).tabs.Map.rows.filter(x => x[1] === 'Haven').map(x => x[2]), ['', 'Level 1', 'Level 2'], 'no level on its own: all of them show again');
+  assert.equal(gm(api, { op: 'show', location: 'Haven', level: 'Attic', on: true }).code, 'missing');
+});
+
+test('Session and NPCs tabs: only the GM makes them; the crew write only their own kinds of row', () => {
+  const { api } = setup();
+  assert.equal(crew(api, { op: 'create', tab: 'Session', rows: [] }).code, 'name');
+  assert.equal(crew(api, { op: 'create', tab: 'NPCs', rows: [] }).code, 'name');
+  assert.equal(gm(api, { op: 'create', tab: 'Session', rows: [['folder', 'Vega Station', '', '']] }).ok, true);
+  assert.equal(gm(api, { op: 'create', tab: 'NPCs', rows: [['npc', 'Captain Vex', 'loud', '']] }).ok, true);
+  const list = crew(api, { op: 'read', tabs: ['Session', 'NPCs'] }).list;
+  assert.deepEqual(list.filter(t => t.kind === 'session' || t.kind === 'npcs'), [{ name: 'Session', kind: 'session' }, { name: 'NPCs', kind: 'npcs' }]);
+
+  assert.equal(crew(api, { op: 'patch', tab: 'Session', set: [['share', 'x1', 'Vega Station', 'scene: A trick']] }).code, 'forbidden', 'crew can’t share');
+  assert.equal(crew(api, { op: 'patch', tab: 'Session', del: [['folder', 'Vega Station']] }).code, 'forbidden');
+  assert.equal(crew(api, { op: 'patch', tab: 'Session', set: [['note', 'n1', 'Vega Station', 'note: Nexa\nWatch the door.'], ['done', 'session-begin:Nexa', 's1', '']] }).ok, true);
+  assert.equal(crew(api, { op: 'patch', tab: 'NPCs', set: [['npc', 'Captain Vex', 'quiet', '']] }).code, 'forbidden');
+  assert.equal(crew(api, { op: 'patch', tab: 'NPCs', set: [['crew', 'Captain Vex', 'Owes us.', '']] }).ok, true);
+  assert.equal(gm(api, { op: 'patch', tab: 'Session', set: [['share', 'x1', 'Vega Station', 'scene: A trick']] }).ok, true);
+  const rows = crew(api, { op: 'read', tabs: ['Session'] }).tabs.Session.rows;
+  assert.deepEqual(rows.map(r => r[0]), ['folder', 'note', 'done', 'share']);
 });
